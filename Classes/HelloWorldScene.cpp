@@ -148,17 +148,20 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 void HelloWorld::menuItemStartCallback(Ref* pSender)
 {
 	auto sc = Game::createScene();
-	Director::getInstance()->pushScene(sc);
+	auto reScene = TransitionCrossFade::create(0.5f, sc);
+	Director::getInstance()->pushScene(reScene);
 }
 
 void HelloWorld::menuItemHelpCallback(Ref* pSender)
 {
 	auto sc = Help::createScene();
-	Director::getInstance()->pushScene(sc);
+	auto reScene = TransitionCrossFade::create(0.5f, sc);
+	Director::getInstance()->pushScene(reScene);
 }
 
 void HelloWorld::menuItemOptionsCallback(Ref* pSender)
 {
 	auto sc = Options::createScene();
-	Director::getInstance()->pushScene(sc);
+	auto reScene = TransitionCrossFade::create(0.5f, sc);
+	Director::getInstance()->pushScene(reScene);
 }
