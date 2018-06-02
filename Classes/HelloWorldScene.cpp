@@ -1,5 +1,6 @@
 #include "HelloWorldScene.h"
 #include "SimpleAudioEngine.h"
+#include "OptionsScene.h"
 
 USING_NS_CC;
 
@@ -74,17 +75,17 @@ bool HelloWorld::init()
 
 	MenuItemSprite* startMenuItem = MenuItemSprite::create(startSpriteNormal, startSpriteSelected, 
 		CC_CALLBACK_1(HelloWorld::menuItemStartCallback, this));
-	startMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(512, 384)));
+	startMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(visibleSize.width/2, visibleSize.height/2)));
 	
 	//Help button
 	MenuItemImage* helpMenuItem = MenuItemImage::create("startScreen/helpNormal.png", "startScreen/helpChosen.png", 
 		CC_CALLBACK_1(HelloWorld::menuItemHelpCallback, this));
-	helpMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(512, 384 + 120)));
+	helpMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(visibleSize.width / 2, visibleSize.height / 2 + 120)));
 
 	//Options button
 	MenuItemImage* optionsMenuItem = MenuItemImage::create("startScreen/optionsNormal.png", "startScreen/optionsChose.png", //Chose instead of Chosen for a strange bug
 		CC_CALLBACK_1(HelloWorld::menuItemOptionsCallback, this));
-	optionsMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(512, 384 + 2 * 120)));
+	optionsMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(visibleSize.width / 2, visibleSize.height / 2 + 2 * 120)));
 
 	Menu* mu = Menu::create(startMenuItem, helpMenuItem, optionsMenuItem, NULL);
 	mu->setPosition(Vec2::ZERO);
@@ -156,6 +157,6 @@ void HelloWorld::menuItemHelpCallback(Ref* pSender)
 
 void HelloWorld::menuItemOptionsCallback(Ref* pSender)
 {
-	MenuItem* item = (MenuItem*)pSender;
-	log("Touch Options Menu Item %p", item);
+	auto sc = Options::createScene();
+	Director::getInstance()->pushScene(sc);
 }
