@@ -18,8 +18,12 @@ bool Game::init()
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-	auto backGround = LayerColor::create(Color4B(100, 100, 100, 255));
-	this->addChild(backGround);
+	//tile map
+	auto backGround = Sprite::create("game/bgTile.png", Rect(0, 0, visibleSize.width, visibleSize.height));
+	Texture2D::TexParams tp = { GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT };
+	backGround->getTexture()->setTexParameters(tp);
+	backGround->setPosition(origin.x + visibleSize.width / 2, origin.y + visibleSize.height / 2);
+	this->addChild(backGround, 0);
 
 	//back button for the convenience of testing
 	auto backMenuItem = MenuItemImage::create("secondMenu/backNorma.png", "secondMenu/backChosen.png",//Norma instead of Normal for a strange bug
