@@ -47,6 +47,7 @@ void Options::menuBackCallback(cocos2d::Ref* pSender)
 	Director::getInstance()->popScene();
 }
 
+//audio control not completed...
 void Options::menuSoundToggleCallback(cocos2d::Ref* pSender)
 {
 	MenuItem* item = (MenuItem*)pSender;

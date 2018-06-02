@@ -1,6 +1,8 @@
 #include "HelloWorldScene.h"
 #include "SimpleAudioEngine.h"
 #include "OptionsScene.h"
+#include "HelpScene.h"
+#include "GameScene.h"
 
 USING_NS_CC;
 
@@ -145,14 +147,14 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 
 void HelloWorld::menuItemStartCallback(Ref* pSender)
 {
-	MenuItem* item = (MenuItem*)pSender;
-	log("Touch Start Menu Item %p", item);
+	auto sc = Game::createScene();
+	Director::getInstance()->pushScene(sc);
 }
 
 void HelloWorld::menuItemHelpCallback(Ref* pSender)
 {
-	MenuItem* item = (MenuItem*)pSender;
-	log("Touch Help Menu Item %p", item);
+	auto sc = Help::createScene();
+	Director::getInstance()->pushScene(sc);
 }
 
 void HelloWorld::menuItemOptionsCallback(Ref* pSender)
