@@ -132,7 +132,7 @@ void Game::touchMoved(Touch * touch, Event * event)
 {
 	//Function calling inteval(ms)
 	//if the interval is too short, funtion calling too frequent, the sprite cannot move or change directions smoothly
-	if (clock() - moveStartTime > 200)
+	if (clock() - moveStartTime > 100)
 	{
 		auto target = static_cast<Sprite*>(event->getCurrentTarget());
 		Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
@@ -215,6 +215,7 @@ void Game::touchEnded(Touch * touch, Event * event)
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
 	Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
 	target->stopActionByTag(previous_kind_of_move_action);//when touch ended, just stop
+	unschedule(schedule_selector(Game::spriteFollowingView));
 }
 
 
@@ -264,8 +265,8 @@ void Game::spriteFollowingView(float dt)
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 
-	int x = MAX(position.x, visibleSize.width / 2);
-	int y = MAX(position.y, visibleSize.height / 2);
+	int x = MAX(position.x, (1 - MAP_WIDTH_TIMES) / 2 * visibleSize.width);
+	int y = MAX(position.y, (1 - MAP_HEIGHT_TIMES) / 2 * visibleSize.height);
 	x = MIN(x, (MAP_WIDTH_TIMES - 0.5) * visibleSize.width);
 	y = MIN(y, (MAP_HEIGHT_TIMES - 0.5) * visibleSize.height);
 	
