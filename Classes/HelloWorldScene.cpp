@@ -62,9 +62,6 @@ bool HelloWorld::init()
     /////////////////////////////
     // 3. add your codes below...
 
-    // add a label shows "Hello World"
-    // create and initialize a label
-
 	//background
 	auto backGround = Sprite::create("startScreen/bg.png");
 	backGround->setPosition(Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height / 2));
@@ -93,37 +90,6 @@ bool HelloWorld::init()
 	mu->setPosition(Vec2::ZERO);
 	this->addChild(mu);
 
-   /* auto label = Label::createWithTTF("Ball Ball Big Fight", "fonts/Arial.ttf", 48);
-    if (label == nullptr)
-    {
-        problemLoading("'fonts/Arial.ttf'");
-    }
-    else
-    {
-        // position the label on the center of the screen
-        label->setPosition(Vec2(origin.x + visibleSize.width/2,
-                                origin.y + visibleSize.height - 2 * label->getContentSize().height));
-
-        // add the label as a child to this layer
-        this->addChild(label, 1);
-    }
-
-
-
-    // add "HelloWorld" splash screen"
-    auto sprite = Sprite::create("HelloWorld.png");
-    if (sprite == nullptr)
-    {
-        problemLoading("'HelloWorld.png'");
-    }
-    else
-    {
-        // position the sprite on the center of the screen
-        sprite->setPosition(Vec2(visibleSize.width/2 + origin.x, visibleSize.height/2 + origin.y));
-
-        // add the sprite as a child to this layer
-        this->addChild(sprite, 0);
-    }*/
     return true;
 }
 

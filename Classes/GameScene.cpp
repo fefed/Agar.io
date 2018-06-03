@@ -41,7 +41,7 @@ bool Game::init()
 	mn->setPosition(Vec2::ZERO);
 	this->addChild(mn, 0);
 
-	//player sprite
+	//create player sprite using polygen sprite
 	auto playerPInfo = AutoPolygon::generatePolygon("game/pinkPlayer.png");
 	auto player = Sprite::create(playerPInfo);
 	player->setTag(PLAYER_SPRITE_TAG);
@@ -55,7 +55,8 @@ bool Game::init()
 
 void Game::menuBackCallback(cocos2d::Ref* pSender)
 {
-	Director::getInstance()->popScene();
+	//back to menu for the convenience of test
+	Director::getInstance()->popScene();//but not work now
 }
 
 
@@ -75,31 +76,35 @@ void Game::onEnter()
 	eventDispatcher->addEventListenerWithSceneGraphPriority(listener, getChildByTag(PLAYER_SPRITE_TAG));
 }
 
-int previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action;
-clock_t startTime = clock();
+
+//move by touch
+
+int previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action;//record previous action types
+clock_t startTime = clock();//record time to control the interval of calling the function touchMoved
 
 bool Game::touchBegan(Touch* touch, Event* event)
 {
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
 	Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
 
+	//8 directions instead of any directions to move smoothly
 	float tan = abs(locationInNode.y / locationInNode.x);
-	previous_if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;
-	previous_if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;
+	previous_if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;//the first direction type, so we use previous_... in file scope
+	previous_if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;//to compare with the next
 
-	auto move1 = MoveBy::create(1000, Vec2(0, SPEED * previous_if_y_is_minus));
+	auto move1 = MoveBy::create(1000, Vec2(0, SPEED * previous_if_y_is_minus));//1000 seconds until touchMoved or touchEnded
 	auto move2 = MoveBy::create(1000, Vec2(SPEED * previous_if_x_is_minus, SPEED * previous_if_y_is_minus));
 	auto move3 = MoveBy::create(1000, Vec2(SPEED * previous_if_x_is_minus, 0));
-	move1->setTag(MOVE_ACTION_1);
+	move1->setTag(MOVE_ACTION_1);//set tag for actions to stop them in the following function
 	move2->setTag(MOVE_ACTION_2);
 	move3->setTag(MOVE_ACTION_3);
 
-	if (tan > 2.4142)
+	if (tan > 2.4142)//tan 77.5
 	{
 		target->runAction(move1);
 		previous_kind_of_move_action = 1;
 	}
-	else if (tan > 0.4142)
+	else if (tan > 0.4142)//tan 22.5
 	{
 		target->runAction(move2);
 		previous_kind_of_move_action = 2;
@@ -110,28 +115,20 @@ bool Game::touchBegan(Touch* touch, Event* event)
 		previous_kind_of_move_action = 3;
 	}
 
-	/*float distance = sqrt(locationInNode.x * locationInNode.x + locationInNode.y * locationInNode.y);
-	auto move = MoveBy::create(1.0 / 60.0, Vec2(SPEED * locationInNode.x / distance, SPEED * locationInNode.y / distance));
-	auto delay = DelayTime::create(0.03);
-
-	while (true)
-	{
-		target->runAction(Sequence::create(move, delay, nullptr));
-		Sleep(3);
-	}*/
-
 	return true;
 }
 
 void Game::touchMoved(Touch * touch, Event * event)
 {
-	if (clock() - startTime > 200)//Function calling inteval
+	//Function calling inteval(ms)
+	//if the interval is too short, funtion calling too frequent, the sprite cannot move or change directions smoothly
+	if (clock() - startTime > 200)
 	{
 		auto target = static_cast<Sprite*>(event->getCurrentTarget());
 		Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
 
 		float tan = abs(locationInNode.y / locationInNode.x);
-		int if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;
+		int if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;//maybe a new diretion, so we use them without previous_...
 		int if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;
 
 		bool if_move_action_is_same = true;
@@ -141,7 +138,7 @@ void Game::touchMoved(Touch * touch, Event * event)
 		{
 			if (tan > 2.4142)
 			{
-				if (previous_kind_of_move_action == 1);
+				if (previous_kind_of_move_action == 1);//the direction is the same as it is previously, so we do nothing
 				else
 				{
 					if_move_action_is_same = false;
@@ -184,12 +181,12 @@ void Game::touchMoved(Touch * touch, Event * event)
 			auto move1 = MoveBy::create(1000, Vec2(0, SPEED * if_y_is_minus));
 			auto move2 = MoveBy::create(1000, Vec2(SPEED * if_x_is_minus, SPEED * if_y_is_minus));
 			auto move3 = MoveBy::create(1000, Vec2(SPEED * if_x_is_minus, 0));
-			move1->setTag(MOVE_ACTION_1);
+			move1->setTag(MOVE_ACTION_1);//tag for stopping
 			move2->setTag(MOVE_ACTION_2);
 			move3->setTag(MOVE_ACTION_3);
 
-			target->stopActionByTag(previous_kind_of_move_action);
-			previous_kind_of_move_action = kind_of_move_action;
+			target->stopActionByTag(previous_kind_of_move_action);//since direction should change, the previous action stops
+			previous_kind_of_move_action = kind_of_move_action;//new direction, record this action type to compare with the next
 			if (previous_kind_of_move_action == 1)
 				target->runAction(move1);
 			else if (previous_kind_of_move_action == 2)
@@ -198,27 +195,8 @@ void Game::touchMoved(Touch * touch, Event * event)
 				target->runAction(move3);
 		}
 
+		//record time the function ends to control the intervals between two callings
 		startTime = clock();
-
-		/*float tan = locationInNode.y / locationInNode.x;
-		if (tan >= 0 && tan <= 0.414)
-		{
-			target->runAction
-		}
-		auto move = Place::create(target->convertToNodeSpace(Vec2(SPEED * locationInNode.x / distance, SPEED * locationInNode.y / distance)));
-		auto delay = DelayTime::create(0.03);
-
-		while (true)
-		{
-			target->runAction(Sequence::create(move, delay, nullptr));
-			Sleep(3);
-		}*/
-
-		/*Action* move = MoveBy::create(sqrt(locationInNode.x * locationInNode.x + locationInNode.y * locationInNode.y) / 1000,
-			Vec2(locationInNode.x, locationInNode.y));
-		move->setTag(MOVE_ACTION_TAG);
-		target->stopActionByTag(MOVE_ACTION_TAG);
-		target->runAction(move);*/
 	}
 }
 
@@ -226,5 +204,5 @@ void Game::touchEnded(Touch * touch, Event * event)
 {
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
 	Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
-	target->stopActionByTag(previous_kind_of_move_action);
+	target->stopActionByTag(previous_kind_of_move_action);//when touch ended, just stop
 }
