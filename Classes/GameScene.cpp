@@ -96,7 +96,7 @@ bool Game::touchBegan(Touch* touch, Event* event)
 	previous_if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;//to compare with the next
 
 	auto move1 = MoveBy::create(1000, Vec2(0, SPEED * previous_if_y_is_minus));//1000 seconds until touchMoved or touchEnded
-	auto move2 = MoveBy::create(1000, Vec2(SPEED * previous_if_x_is_minus, SPEED * previous_if_y_is_minus));
+	auto move2 = MoveBy::create(1000, Vec2(0.707 * SPEED * previous_if_x_is_minus, 0.707 * SPEED * previous_if_y_is_minus));
 	auto move3 = MoveBy::create(1000, Vec2(SPEED * previous_if_x_is_minus, 0));
 	move1->setTag(MOVE_ACTION_1);//set tag for actions to stop them in the following function
 	move2->setTag(MOVE_ACTION_2);
@@ -189,7 +189,7 @@ void Game::touchMoved(Touch * touch, Event * event)
 		if (!if_move_action_is_same)
 		{
 			auto move1 = MoveBy::create(1000, Vec2(0, SPEED * if_y_is_minus));
-			auto move2 = MoveBy::create(1000, Vec2(SPEED * if_x_is_minus, SPEED * if_y_is_minus));
+			auto move2 = MoveBy::create(1000, Vec2(0.707 * SPEED * if_x_is_minus, 0.707 * SPEED * if_y_is_minus));
 			auto move3 = MoveBy::create(1000, Vec2(SPEED * if_x_is_minus, 0));
 			move1->setTag(MOVE_ACTION_1);//tag for stopping
 			move2->setTag(MOVE_ACTION_2);
@@ -217,45 +217,6 @@ void Game::touchEnded(Touch * touch, Event * event)
 	target->stopActionByTag(previous_kind_of_move_action);//when touch ended, just stop
 	unschedule(schedule_selector(Game::spriteFollowingView));
 }
-
-
-//old version
-//move the view
-//now only respond to touchBegan, need a change and stop method
-/*void Game::setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus)
-{
-	Vec2 position = player->getPosition();
-	Size visibleSize = Director::getInstance()->getVisibleSize();
-	
-	bool edgeLeft = (position.x <= visibleSize.width / 2) ? ((if_x_is_minus == -1) ? 0 : 1) : 1;
-	bool edgeBottom = (position.y <= visibleSize.height / 2) ? ((if_y_is_minus == -1) ? 0 : 1) : 1;
-	bool edgeRight = (position.x >= (MAP_WIDTH_TIMES - 0.5) * visibleSize.width) ? ((if_x_is_minus == 1) ? 0 : 1) : 1;
-	bool edgeTop = (position.y >= (MAP_HEIGHT_TIMES - 0.5) * visibleSize.height) ? ((if_y_is_minus == 1) ? 0 : 1) : 1;
-
-	auto move4 = MoveBy::create(1000, Vec2(0, - SPEED * if_y_is_minus * edgeTop * edgeBottom));
-	auto move5 = MoveBy::create(1000, Vec2(- SPEED * if_x_is_minus * edgeLeft * edgeRight, - SPEED * if_y_is_minus * edgeTop * edgeBottom));
-	auto move6 = MoveBy::create(1000, Vec2(- SPEED * if_x_is_minus * edgeLeft * edgeRight, 0));
-	move4->setTag(4);//tag for stopping
-	move5->setTag(5);
-	move6->setTag(6);
-	
-	if (kind_of_move_action == 1)
-		this->runAction(move4);
-	else if (kind_of_move_action == 2)
-		this->runAction(move5);
-	else
-		this->runAction(move6);
-	}*/
-
-	/*Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height);
-	Vec2 pointB = Vec2(x, y);
-	log("target position (%f, %f)", pointB.x, pointB.y);
-
-	Vec2 offset = pointA - pointB;
-
-	log("offset (%f, %f)", offset.x, offset.y);
-	this->setPosition(offset);*/
-//old version
 
 
 //move the view using schedule
