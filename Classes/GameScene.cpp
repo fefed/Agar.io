@@ -7,6 +7,8 @@
 #define MOVE_ACTION_2 2
 #define MOVE_ACTION_3 3
 #define SPEED 300000
+#define MAP_WIDTH_TIMES 10
+#define MAP_HEIGHT_TIMES 10
 
 USING_NS_CC;
 
@@ -26,7 +28,8 @@ bool Game::init()
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
 	//tile map
-	auto backGround = Sprite::create("game/bgTile.png", Rect(0, 0, 10 * visibleSize.width, 10 * visibleSize.height));
+	auto backGround = Sprite::create("game/bgTile.png", Rect(0, 0, 
+		MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height));//map size
 	Texture2D::TexParams tp = { GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT };
 	backGround->getTexture()->setTexParameters(tp);
 	backGround->setPosition(origin.x + visibleSize.width / 2, origin.y + visibleSize.height / 2);
@@ -80,7 +83,7 @@ void Game::onEnter()
 //move by touch
 
 int previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action;//record previous action types
-clock_t startTime = clock();//record time to control the interval of calling the function touchMoved
+clock_t moveStartTime = clock();//record time to control the interval of calling the function touchMoved
 
 bool Game::touchBegan(Touch* touch, Event* event)
 {
@@ -115,6 +118,9 @@ bool Game::touchBegan(Touch* touch, Event* event)
 		previous_kind_of_move_action = 3;
 	}
 
+	//get sprite position to move the view
+	setViewPointCenter(target, previous_kind_of_move_action, previous_if_x_is_minus, previous_if_y_is_minus);
+
 	return true;
 }
 
@@ -122,7 +128,7 @@ void Game::touchMoved(Touch * touch, Event * event)
 {
 	//Function calling inteval(ms)
 	//if the interval is too short, funtion calling too frequent, the sprite cannot move or change directions smoothly
-	if (clock() - startTime > 200)
+	if (clock() - moveStartTime > 200)
 	{
 		auto target = static_cast<Sprite*>(event->getCurrentTarget());
 		Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
@@ -196,7 +202,7 @@ void Game::touchMoved(Touch * touch, Event * event)
 		}
 
 		//record time the function ends to control the intervals between two callings
-		startTime = clock();
+		moveStartTime = clock();
 	}
 }
 
@@ -205,4 +211,42 @@ void Game::touchEnded(Touch * touch, Event * event)
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
 	Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
 	target->stopActionByTag(previous_kind_of_move_action);//when touch ended, just stop
+}
+
+
+//move the view
+//now only respond to touchBegan, need a change and stop method 
+void Game::setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus)
+{
+	Vec2 position = player->getPosition();
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+	
+	bool edgeLeft = (position.x <= visibleSize.width / 2) ? ((if_x_is_minus == -1) ? 0 : 1) : 1;
+	bool edgeBottom = (position.y <= visibleSize.height / 2) ? ((if_y_is_minus == -1) ? 0 : 1) : 1;
+	bool edgeRight = (position.x >= (MAP_WIDTH_TIMES - 0.5) * visibleSize.width) ? ((if_x_is_minus == 1) ? 0 : 1) : 1;
+	bool edgeTop = (position.y >= (MAP_HEIGHT_TIMES - 0.5) * visibleSize.height) ? ((if_y_is_minus == 1) ? 0 : 1) : 1;
+
+	auto move4 = MoveBy::create(1000, Vec2(0, - SPEED * if_y_is_minus * edgeTop * edgeBottom));
+	auto move5 = MoveBy::create(1000, Vec2(- SPEED * if_x_is_minus * edgeLeft * edgeRight, - SPEED * if_y_is_minus * edgeTop * edgeBottom));
+	auto move6 = MoveBy::create(1000, Vec2(- SPEED * if_x_is_minus * edgeLeft * edgeRight, 0));
+	move4->setTag(4);//tag for stopping
+	move5->setTag(5);
+	move6->setTag(6);
+	
+	if (kind_of_move_action == 1)
+		this->runAction(move4);
+	else if (kind_of_move_action == 2)
+		this->runAction(move5);
+	else
+		this->runAction(move6);
+
+	/*Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height);
+	Vec2 pointB = Vec2(x, y);
+	log("target position (%f, %f)", pointB.x, pointB.y);
+
+	Vec2 offset = pointA - pointB;
+
+	log("offset (%f, %f)", offset.x, offset.y);
+	this->setPosition(offset);*/
+
 }
