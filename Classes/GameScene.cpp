@@ -118,8 +118,12 @@ bool Game::touchBegan(Touch* touch, Event* event)
 		previous_kind_of_move_action = 3;
 	}
 
+	//old version
 	//get sprite position to move the view
-	setViewPointCenter(target, previous_kind_of_move_action, previous_if_x_is_minus, previous_if_y_is_minus);
+	//setViewPointCenter(target, previous_kind_of_move_action, previous_if_x_is_minus, previous_if_y_is_minus);
+
+	//call function using schedule
+	this->schedule(schedule_selector(Game::spriteFollowingView), 1.0 / 60.0);
 
 	return true;
 }
@@ -214,9 +218,10 @@ void Game::touchEnded(Touch * touch, Event * event)
 }
 
 
+//old version
 //move the view
-//now only respond to touchBegan, need a change and stop method 
-void Game::setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus)
+//now only respond to touchBegan, need a change and stop method
+/*void Game::setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus)
 {
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
@@ -239,6 +244,7 @@ void Game::setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_
 		this->runAction(move5);
 	else
 		this->runAction(move6);
+	}*/
 
 	/*Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height);
 	Vec2 pointB = Vec2(x, y);
@@ -248,5 +254,27 @@ void Game::setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_
 
 	log("offset (%f, %f)", offset.x, offset.y);
 	this->setPosition(offset);*/
+//old version
 
+
+//move the view using schedule
+void Game::spriteFollowingView(float dt)
+{
+	Sprite* player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
+	Vec2 position = player->getPosition();
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+
+	int x = MAX(position.x, visibleSize.width / 2);
+	int y = MAX(position.y, visibleSize.height / 2);
+	x = MIN(x, (MAP_WIDTH_TIMES - 0.5) * visibleSize.width);
+	y = MIN(y, (MAP_HEIGHT_TIMES - 0.5) * visibleSize.height);
+	
+	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);
+	Vec2 pointB = Vec2(x, y);
+	log("target position (%f, %f)", pointB.x, pointB.y);
+
+	Vec2 offset = pointA - pointB;
+
+	log("offset (%f, %f)", offset.x, offset.y);
+	this->setPosition(offset);
 }

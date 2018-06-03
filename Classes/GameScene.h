@@ -19,9 +19,13 @@ public:
 	bool touchBegan(Touch* touch, Event* event);
 	void touchMoved(Touch* touch, Event* event);
 	void touchEnded(Touch* touch, Event* event);
-
+	
+	//old version
 	//move the view
-	void setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus);
+	//void setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus);
+	
+	//move the view using schedule
+	virtual void spriteFollowingView(float dt);
 
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);
