@@ -9,6 +9,7 @@
 #define SPEED 300000
 #define MAP_WIDTH_TIMES 10
 #define MAP_HEIGHT_TIMES 10
+#define INIT_PARTICLE_NUM 5000
 
 USING_NS_CC;
 
@@ -49,7 +50,16 @@ bool Game::init()
 	auto player = Sprite::create(playerPInfo);
 	player->setTag(PLAYER_SPRITE_TAG);
 	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
-	this->addChild(player);
+	this->addChild(player, 2);
+
+	//create little particles when initialize
+	for (int amount = INIT_PARTICLE_NUM; amount > 0; amount--)
+		createLittleParticle();
+
+	//test sign for (0,0)
+	auto test = Sprite::create("HelloWorld.png");
+	test->setPosition(Vec2(0, 0));
+	this->addChild(test, 0);
 
 	//to be compeleted...
 
@@ -88,7 +98,7 @@ clock_t moveStartTime = clock();//record time to control the interval of calling
 bool Game::touchBegan(Touch* touch, Event* event)
 {
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
-	Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
+	Vec2 locationInNode = target->convertToNodeSpaceAR(touch->getLocation());
 
 	//8 directions instead of any directions to move smoothly
 	float tan = abs(locationInNode.y / locationInNode.x);
@@ -135,7 +145,7 @@ void Game::touchMoved(Touch * touch, Event * event)
 	if (clock() - moveStartTime > 100)
 	{
 		auto target = static_cast<Sprite*>(event->getCurrentTarget());
-		Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
+		Vec2 locationInNode = target->convertToNodeSpaceAR(touch->getLocation());
 
 		float tan = abs(locationInNode.y / locationInNode.x);
 		int if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;//maybe a new diretion, so we use them without previous_...
@@ -213,7 +223,6 @@ void Game::touchMoved(Touch * touch, Event * event)
 void Game::touchEnded(Touch * touch, Event * event)
 {
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
-	Vec2 locationInNode = target->convertToNodeSpace(touch->getLocation());
 	target->stopActionByTag(previous_kind_of_move_action);//when touch ended, just stop
 	unschedule(schedule_selector(Game::spriteFollowingView));
 }
@@ -239,4 +248,43 @@ void Game::spriteFollowingView(float dt)
 
 	log("offset (%f, %f)", offset.x, offset.y);
 	this->setPosition(offset);
+}
+
+
+//Create little particles
+void Game::createLittleParticle()
+{
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+
+	auto particlePInfo = AutoPolygon::generatePolygon("game/littleParticle.png");
+	auto littleParticle = Sprite::create(particlePInfo);
+
+	float posX = (MAP_WIDTH_TIMES * visibleSize.width - 2 * 200) * CCRANDOM_0_1() - MAP_WIDTH_TIMES * visibleSize.width / 2;
+	float posY = (MAP_HEIGHT_TIMES * visibleSize.height - 2 * 100) * CCRANDOM_0_1() - MAP_HEIGHT_TIMES * visibleSize.height / 2;
+	littleParticle->setPosition(Vec2(posX, posY));
+	
+	int colorType = (int)(6 * CCRANDOM_0_1()) % 6;
+	switch (colorType)
+	{
+	case 0:
+		littleParticle->setColor(Color3B(255, 247, 153));//yellow preset
+		break;
+	case 1:
+		littleParticle->setColor(Color3B(230, 18, 0));//red preset
+		break;
+	case 2:
+		littleParticle->setColor(Color3B(153, 195, 31));//green preset
+		break;
+	case 3:
+		littleParticle->setColor(Color3B(0, 183, 238));//blue preset
+		break;
+	case 4:
+		littleParticle->setColor(Color3B(228, 0, 127));//purple preset
+		break;
+	case 5:
+		littleParticle->setColor(Color3B(255, 255, 255));//white preset
+		break;
+	}
+
+	this->addChild(littleParticle, 1);
 }

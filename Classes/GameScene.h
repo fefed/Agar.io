@@ -27,6 +27,9 @@ public:
 	//move the view using schedule
 	virtual void spriteFollowingView(float dt);
 
+	//create little particles
+	void createLittleParticle();
+
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);
 };
