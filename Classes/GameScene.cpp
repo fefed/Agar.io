@@ -33,7 +33,7 @@ bool Game::init()
 		MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height));//map size
 	Texture2D::TexParams tp = { GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT };
 	backGround->getTexture()->setTexParameters(tp);
-	backGround->setPosition(origin.x + visibleSize.width / 2, origin.y + visibleSize.height / 2);
+	backGround->setPosition(origin.x, origin.y);
 	this->addChild(backGround, 0);
 
 	//back button for the convenience of testing
@@ -53,8 +53,7 @@ bool Game::init()
 	this->addChild(player, 2);
 
 	//create little particles when initialize
-	for (int amount = INIT_PARTICLE_NUM; amount > 0; amount--)
-		createLittleParticle();
+	createLittleParticles();
 
 	//test sign for (0,0)
 	auto test = Sprite::create("HelloWorld.png");
@@ -127,10 +126,6 @@ bool Game::touchBegan(Touch* touch, Event* event)
 		target->runAction(move3);
 		previous_kind_of_move_action = 3;
 	}
-
-	//old version
-	//get sprite position to move the view
-	//setViewPointCenter(target, previous_kind_of_move_action, previous_if_x_is_minus, previous_if_y_is_minus);
 
 	//call function using schedule
 	this->schedule(schedule_selector(Game::spriteFollowingView), 1.0 / 60.0);
@@ -234,11 +229,13 @@ void Game::spriteFollowingView(float dt)
 	Sprite* player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
+	log("sprite position (%f, %f)", position.x, position.y);
 
-	int x = MAX(position.x, (1 - MAP_WIDTH_TIMES) / 2 * visibleSize.width);
-	int y = MAX(position.y, (1 - MAP_HEIGHT_TIMES) / 2 * visibleSize.height);
-	x = MIN(x, (MAP_WIDTH_TIMES - 0.5) * visibleSize.width);
-	y = MIN(y, (MAP_HEIGHT_TIMES - 0.5) * visibleSize.height);
+	//view center position control near the edges
+	int x = (position.x < 0) ? MAX(position.x, - (MAP_WIDTH_TIMES / 2 - 0.5) * visibleSize.width) : position.x;
+	int y = (position.y < 0) ? MAX(position.y, - (MAP_HEIGHT_TIMES / 2 - 0.5) * visibleSize.height) : position.y;
+	x = MIN(x, (MAP_WIDTH_TIMES / 2 - 0.5) * visibleSize.width);
+	y = MIN(y, (MAP_HEIGHT_TIMES / 2 - 0.5) * visibleSize.height);
 	
 	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);
 	Vec2 pointB = Vec2(x, y);
@@ -252,39 +249,48 @@ void Game::spriteFollowingView(float dt)
 
 
 //Create little particles
-void Game::createLittleParticle()
+void Game::createLittleParticles()
 {
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 
-	auto particlePInfo = AutoPolygon::generatePolygon("game/littleParticle.png");
-	auto littleParticle = Sprite::create(particlePInfo);
+	//using SpriteBatchNode to optimize
+	//but this can be replaced by normal sprite::create() because it is automatically applied after cocos2dx 3.0 beta
+	SpriteBatchNode* batchNode = SpriteBatchNode::create("game/littleParticle.png", INIT_PARTICLE_NUM);
+	this->addChild(batchNode);
 
-	float posX = (MAP_WIDTH_TIMES * visibleSize.width - 2 * 200) * CCRANDOM_0_1() - MAP_WIDTH_TIMES * visibleSize.width / 2;
-	float posY = (MAP_HEIGHT_TIMES * visibleSize.height - 2 * 100) * CCRANDOM_0_1() - MAP_HEIGHT_TIMES * visibleSize.height / 2;
-	littleParticle->setPosition(Vec2(posX, posY));
-	
-	int colorType = (int)(6 * CCRANDOM_0_1()) % 6;
-	switch (colorType)
+	for (int amount = 0; amount < INIT_PARTICLE_NUM; amount++)
 	{
-	case 0:
-		littleParticle->setColor(Color3B(255, 247, 153));//yellow preset
-		break;
-	case 1:
-		littleParticle->setColor(Color3B(230, 18, 0));//red preset
-		break;
-	case 2:
-		littleParticle->setColor(Color3B(153, 195, 31));//green preset
-		break;
-	case 3:
-		littleParticle->setColor(Color3B(0, 183, 238));//blue preset
-		break;
-	case 4:
-		littleParticle->setColor(Color3B(228, 0, 127));//purple preset
-		break;
-	case 5:
-		littleParticle->setColor(Color3B(255, 255, 255));//white preset
-		break;
-	}
+		Sprite* littleParticle = Sprite::createWithTexture(batchNode->getTexture());
 
-	this->addChild(littleParticle, 1);
+		float posX = (MAP_WIDTH_TIMES * visibleSize.width - 2 * 50) * CCRANDOM_0_1()//50 pixels reserved for each edge
+			- (MAP_WIDTH_TIMES * visibleSize.width / 2 - 50);
+		float posY = (MAP_HEIGHT_TIMES * visibleSize.height - 2 * 50) * CCRANDOM_0_1()//50 pixels reserved for each edge
+			- (MAP_HEIGHT_TIMES * visibleSize.height / 2 - 50);
+		littleParticle->setPosition(Vec2(posX, posY));
+
+		int colorType = (int)(6 * CCRANDOM_0_1()) % 6;
+		switch (colorType)
+		{
+		case 0:
+			littleParticle->setColor(Color3B(255, 247, 153));//yellow preset
+			break;
+		case 1:
+			littleParticle->setColor(Color3B(230, 18, 0));//red preset
+			break;
+		case 2:
+			littleParticle->setColor(Color3B(153, 195, 31));//green preset
+			break;
+		case 3:
+			littleParticle->setColor(Color3B(0, 183, 238));//blue preset
+			break;
+		case 4:
+			littleParticle->setColor(Color3B(228, 0, 127));//purple preset
+			break;
+		case 5:
+			littleParticle->setColor(Color3B(255, 255, 255));//white preset
+			break;
+		}
+
+		this->addChild(littleParticle, 1);
+	}
 }
