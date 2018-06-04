@@ -87,7 +87,7 @@ bool Game::init()
 
 	//test sign for (0,0)
 	auto test = Sprite::create("HelloWorld.png");
-	test->setPosition(Vec2(0, 0));
+	test->setPosition(Vec2(-5120, 0));
 	this->addChild(test, 0);
 
 	//to be compeleted...
@@ -122,6 +122,9 @@ void Game::onEnter()
 	contactListener->onContactBegin = CC_CALLBACK_1(Game::contactBegin, this);
 
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(contactListener, 1);
+
+	//call function that changes view size using schedule
+	this->schedule(schedule_selector(Game::viewFollowingPlayerScale), 1.0 / 60.0);
 }
 
 
@@ -163,8 +166,8 @@ bool Game::touchBegan(Touch* touch, Event* event)
 		previous_kind_of_move_action = 3;
 	}
 
-	//call function using schedule
-	this->schedule(schedule_selector(Game::spriteFollowingView), 1.0 / 60.0);
+	//call function that changes view position using schedule
+	this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
 
 	return true;
 }
@@ -269,34 +272,43 @@ void Game::touchEnded(Touch * touch, Event * event)
 
 	target->runAction(EaseOut::create(move, 3));*/
 
-	unschedule(schedule_selector(Game::spriteFollowingView));
+	//unschedule(schedule_selector(Game::spriteFollowingView));
 }
 
 
 //move the view using schedule
-void Game::spriteFollowingView(float dt)
+void Game::spriteFollowedView(float dt)
 {
 	Sprite* player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
-	//log("sprite position (%f, %f)", position.x, position.y);
+	log("sprite position (%f, %f)", position.x, position.y);
+
+	position.x /= viewScale;
+	position.y /= viewScale;
+	visibleSize.width /= viewScale;
+	visibleSize.height /= viewScale;
 
 	//view center position control near the edges
-	int x = (position.x < 0) ? MAX(position.x, - (MAP_WIDTH_TIMES / 2 - 0.5) * visibleSize.width) : position.x;
-	int y = (position.y < 0) ? MAX(position.y, - (MAP_HEIGHT_TIMES / 2 - 0.5) * visibleSize.height) : position.y;
-	x = MIN(x, (MAP_WIDTH_TIMES / 2 - 0.5) * visibleSize.width);
-	y = MIN(y, (MAP_HEIGHT_TIMES / 2 - 0.5) * visibleSize.height);
+	int x = (position.x < 0) ? MAX(position.x, - (MAP_WIDTH_TIMES / 2 - 0.5 * viewScale) * visibleSize.width) : position.x;
+	int y = (position.y < 0) ? MAX(position.y, - (MAP_HEIGHT_TIMES / 2 - 0.5 * viewScale) * visibleSize.height) : position.y;
+	x = MIN(x, (MAP_WIDTH_TIMES / 2 - 0.5 * viewScale) * visibleSize.width);
+	y = MIN(y, (MAP_HEIGHT_TIMES / 2 - 0.5 * viewScale) * visibleSize.height);
 	
-	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);
+	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);//player born location, not completed
 	Vec2 pointB = Vec2(x, y);
-	//log("target position (%f, %f)", pointB.x, pointB.y);
+	log("viewScale: %f", viewScale);
+	log("target position (%f, %f)", pointB.x, pointB.y);
 
+	/*pointA.x /= viewScale;
+	pointA.y /= viewScale;
+	pointB.x /= viewScale;
+	pointB.y /= viewScale;*/
 	Vec2 offset = pointA - pointB;
 
-	//log("offset (%f, %f)", offset.x, offset.y);
+	log("offset (%f, %f)", offset.x, offset.y);
 	this->setPosition(offset);
 }
-
 
 //Create little particles
 void Game::createLittleParticles()
@@ -368,4 +380,13 @@ bool Game::contactBegin(PhysicsContact& contact)
 
 	log("onContactBegin");
 	return true;
+}
+
+void Game::viewFollowingPlayerScale(float dt)
+{
+	//this->setScale(0.5);
+	Game::viewScale = sqrt(this->playerScale);
+	this->setScale(1.0 / viewScale);
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+	//log("visibleSize (%f, %f)", visibleSize.width, visibleSize.height);
 }

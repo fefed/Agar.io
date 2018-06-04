@@ -25,13 +25,18 @@ public:
 	//void setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus);
 	
 	//move the view using schedule
-	virtual void spriteFollowingView(float dt);
+	virtual void spriteFollowedView(float dt);
+
+	//change the view size using schedule
+	virtual void viewFollowingPlayerScale(float dt);
 
 	//create little particles
 	void createLittleParticles();
 
 	bool contactBegin(PhysicsContact& contact);
+	
 	float playerScale = 1.0;
+	float viewScale = 1.0;// > 1.0
 
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);
