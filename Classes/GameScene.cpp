@@ -15,18 +15,39 @@ USING_NS_CC;
 
 Scene* Game::createScene()
 {
+	/*auto scene = Scene::createWithPhysics();
+	//scene->getPhysicsWorld()->setDebugDrawMask(PhysicsWorld::DEBUGDRAW_ALL);
+
+	auto layer = Game::create();
+	scene->addChild(layer);
+
+	return scene;*/
+
 	return Game::create();
 }
 
 bool Game::init()
 {
-	if (!Scene::init())
+	if (!Scene::initWithPhysics())
 	{
 		return false;
 	}
 
+	//this->getPhysicsWorld()->setAutoStep(false);
+	//this->getPhysicsWorld()->step(1.0 / 60);
+
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
+
+	//world edge
+	Size worldSize(MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height);
+	auto worldBody = PhysicsBody::createEdgeBox(worldSize, PHYSICSBODY_MATERIAL_DEFAULT, 5.0);
+	worldBody->setDynamic(false);
+
+	auto edgeNode = Node::create();
+	edgeNode->setPosition(Vec2(0, 0));
+	edgeNode->setPhysicsBody(worldBody);
+	this->addChild(edgeNode);
 
 	//tile map
 	auto backGround = Sprite::create("game/bgTile.png", Rect(0, 0, 
@@ -49,6 +70,11 @@ bool Game::init()
 	auto playerPInfo = AutoPolygon::generatePolygon("game/pinkPlayer.png");
 	auto player = Sprite::create(playerPInfo);
 	player->setTag(PLAYER_SPRITE_TAG);
+
+	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 2);
+	playerBody->setGravityEnable(false);
+	player->setPhysicsBody(playerBody);
+
 	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
 	this->addChild(player, 2);
 
@@ -218,7 +244,21 @@ void Game::touchMoved(Touch * touch, Event * event)
 void Game::touchEnded(Touch * touch, Event * event)
 {
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
-	target->stopActionByTag(previous_kind_of_move_action);//when touch ended, just stop
+	
+	target->stopActionByTag(previous_kind_of_move_action);
+
+	//when touch ended, stop slowly
+	//not completed...
+	/*ActionInterval* move;
+	if (previous_kind_of_move_action == 1)
+		move = MoveBy::create(0.5, Vec2(0, 2000 * SPEED * previous_if_y_is_minus));
+	else if (previous_kind_of_move_action == 2)
+		move = MoveBy::create(0.5, Vec2(2000 * 0.707 * SPEED * previous_if_x_is_minus, 2000 * 0.707 * SPEED * previous_if_y_is_minus));
+	else
+		move = MoveBy::create(0.5, Vec2(2000 * SPEED * previous_if_x_is_minus, 0));
+
+	target->runAction(EaseOut::create(move, 3));*/
+
 	unschedule(schedule_selector(Game::spriteFollowingView));
 }
 
