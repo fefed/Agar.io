@@ -9,8 +9,9 @@
 #define SPEED 300000
 #define MAP_WIDTH_TIMES 10
 #define MAP_HEIGHT_TIMES 10
-#define INIT_PARTICLE_NUM 5000
+#define INIT_PARTICLE_NUM 2000
 #define LITTLE_PARTICLE_TAG 4
+#define EDGE_NODE_TAG 5
 
 USING_NS_CC;
 
@@ -43,21 +44,19 @@ bool Game::init()
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
 	//world edge
-	//NOT WORK...
 	Size worldSize(MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height);
-	auto worldBody = PhysicsBody::createEdgeBox(worldSize, PHYSICSBODY_MATERIAL_DEFAULT, 5.0);
+	auto worldBody = PhysicsBody::createEdgeBox(worldSize, PHYSICSBODY_MATERIAL_DEFAULT, 50.0);
 	worldBody->setDynamic(false);
-	//worldBody->setCollisionBitmask(0x0F);//1111
-	//worldBody->setGravityEnable(false);
 
 	auto edgeNode = Node::create();
+	edgeNode->setTag(EDGE_NODE_TAG);
 	edgeNode->setPosition(Vec2(0, 0));
 	edgeNode->setPhysicsBody(worldBody);
 	this->addChild(edgeNode);
 
 	//tile map
 	auto backGround = Sprite::create("game/greyTile.png", Rect(0, 0,
-		MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height));//map size
+		2 * MAP_WIDTH_TIMES * visibleSize.width, 2 * MAP_HEIGHT_TIMES * visibleSize.height));//map size
 	Texture2D::TexParams tp = { GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT };
 	backGround->getTexture()->setTexParameters(tp);
 	backGround->setPosition(origin.x, origin.y);
@@ -122,13 +121,13 @@ void Game::onEnter()
 	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));
 
 
-	//auto contactListener = EventListenerPhysicsContact::create();
-	//contactListener->onContactBegin = CC_CALLBACK_1(Game::contactBegin, this);
+	auto contactListener = EventListenerPhysicsContact::create();
+	contactListener->onContactBegin = CC_CALLBACK_1(Game::contactBegin, this);
 
-	//Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(contactListener, 1);
+	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(contactListener, 1);
 
 	//call function that changes view size using schedule
-	//this->schedule(schedule_selector(Game::viewFollowingPlayerScale), 1.0 / 60.0);
+	this->schedule(schedule_selector(Game::viewFollowingPlayerScale), 1.0 / 60.0);
 }
 
 
@@ -371,26 +370,29 @@ void Game::createLittleParticles()
 
 bool Game::contactBegin(PhysicsContact& contact)
 {
-auto player = (Sprite*)contact.getShapeA()->getBody()->getNode();
-auto littleParticle = (Sprite*)contact.getShapeB()->getBody()->getNode();
+	auto player = (Sprite*)contact.getShapeA()->getBody()->getNode();
+	auto littleParticle = (Sprite*)contact.getShapeB()->getBody()->getNode();
 
-if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
-{
-playerScale = pow(playerScale + 0.01, 1.0 / 1.001);//needing a better math function
-player->runAction(ScaleTo::create(0, playerScale));
-this->removeChild(littleParticle);
-log("player scale: %f", playerScale);
+	if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
+	{
+		playerScale = pow(playerScale + 0.02, 1.0 / 1.001);//needing a better math function
+		player->runAction(ScaleTo::create(0, playerScale));
+		this->removeChild(littleParticle);
+		log("player scale: %f", playerScale);
+	}
+
+	log("onContactBegin");
+	return true;
 }
 
-log("onContactBegin");
-return true;
-}
-
-/*void Game::viewFollowingPlayerScale(float dt)
+void Game::viewFollowingPlayerScale(float dt)
 {
 	//this->setScale(0.5);
-	Game::viewScale = sqrt(this->playerScale);
+	Game::viewScale = pow(this->playerScale, 1.0 / 3);
 	this->setScale(1.0 / viewScale);
 	Size visibleSize = Director::getInstance()->getVisibleSize();
+
+	auto node = this->getChildByTag(EDGE_NODE_TAG);
+	node->setScale(1.0 / viewScale);
 	//log("visibleSize (%f, %f)", visibleSize.width, visibleSize.height);
-}*/
+}
