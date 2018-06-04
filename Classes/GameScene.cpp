@@ -9,9 +9,9 @@
 #define SPEED 300000
 #define MAP_WIDTH_TIMES 10
 #define MAP_HEIGHT_TIMES 10
-#define INIT_PARTICLE_NUM 5000
+#define INIT_PARTICLE_NUM 2000
 #define LITTLE_PARTICLE_TAG 4
-#define INIT_PLAYER_SCALE 0.05
+#define EDGE_NODE_TAG 5
 
 USING_NS_CC;
 
@@ -38,26 +38,25 @@ bool Game::init()
 	//Game::getPhysicsWorld()->setDebugDrawMask(PhysicsWorld::DEBUGDRAW_ALL);
 
 	//Game::getPhysicsWorld()->setAutoStep(false);
-	//Game::getPhysicsWorld()->step(1.0 / 60.0);
+	//Game::getPhysicsWorld()->step(1.0 / 180.0);
 
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
 	//world edge
 	Size worldSize(MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height);
-	auto worldBody = PhysicsBody::createEdgeBox(worldSize, PHYSICSBODY_MATERIAL_DEFAULT, 5.0);
-	worldBody->setGravityEnable(false);
+	auto worldBody = PhysicsBody::createEdgeBox(worldSize, PHYSICSBODY_MATERIAL_DEFAULT, 50.0);
 	worldBody->setDynamic(false);
 
 	auto edgeNode = Node::create();
+	edgeNode->setTag(EDGE_NODE_TAG);
 	edgeNode->setPosition(Vec2(0, 0));
 	edgeNode->setPhysicsBody(worldBody);
 	this->addChild(edgeNode);
 
 	//tile map
-	//now replaced by grey background
-	auto backGround = Sprite::create("game/greyTile.png", Rect(0, 0, 
-		MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height));//map size
+	auto backGround = Sprite::create("game/greyTile.png", Rect(0, 0,
+		2 * MAP_WIDTH_TIMES * visibleSize.width, 2 * MAP_HEIGHT_TIMES * visibleSize.height));//map size
 	Texture2D::TexParams tp = { GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT };
 	backGround->getTexture()->setTexParameters(tp);
 	backGround->setPosition(origin.x, origin.y);
@@ -73,15 +72,14 @@ bool Game::init()
 	this->addChild(mn, 0);
 
 	//create player sprite using polygen sprite
-	auto playerPInfo = AutoPolygon::generatePolygon("game/pinkPlayer_1000x1000.png");
+	auto playerPInfo = AutoPolygon::generatePolygon("game/player50x50.png");
 	auto player = Sprite::create(playerPInfo);
 	player->setTag(PLAYER_SPRITE_TAG);
-	player->setScale(INIT_PLAYER_SCALE);
 
-	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 3);
+	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
 	playerBody->setGravityEnable(false);
 	playerBody->setContactTestBitmask(0x03);//0011
-	playerBody->setCollisionBitmask(0x00);
+	playerBody->setCollisionBitmask(0x01);
 	player->setPhysicsBody(playerBody);
 
 	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
@@ -262,22 +260,22 @@ void Game::touchMoved(Touch * touch, Event * event)
 void Game::touchEnded(Touch * touch, Event * event)
 {
 	auto target = static_cast<Sprite*>(event->getCurrentTarget());
-	
+
 	target->stopActionByTag(previous_kind_of_move_action);
 
 	//when touch ended, stop slowly
 	//not completed...
 	/*ActionInterval* move;
 	if (previous_kind_of_move_action == 1)
-		move = MoveBy::create(0.5, Vec2(0, 2000 * SPEED * previous_if_y_is_minus));
+	move = MoveBy::create(0.5, Vec2(0, 2000 * SPEED * previous_if_y_is_minus));
 	else if (previous_kind_of_move_action == 2)
-		move = MoveBy::create(0.5, Vec2(2000 * 0.707 * SPEED * previous_if_x_is_minus, 2000 * 0.707 * SPEED * previous_if_y_is_minus));
+	move = MoveBy::create(0.5, Vec2(2000 * 0.707 * SPEED * previous_if_x_is_minus, 2000 * 0.707 * SPEED * previous_if_y_is_minus));
 	else
-		move = MoveBy::create(0.5, Vec2(2000 * SPEED * previous_if_x_is_minus, 0));
+	move = MoveBy::create(0.5, Vec2(2000 * SPEED * previous_if_x_is_minus, 0));
 
 	target->runAction(EaseOut::create(move, 3));*/
 
-	//unschedule(schedule_selector(Game::spriteFollowingView));
+	unschedule(schedule_selector(Game::spriteFollowedView));
 }
 
 
@@ -287,7 +285,7 @@ void Game::spriteFollowedView(float dt)
 	Sprite* player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
-	//log("sprite position (%f, %f)", position.x, position.y);
+	log("sprite position (%f, %f)", position.x, position.y);
 
 	position.x /= viewScale;
 	position.y /= viewScale;
@@ -295,15 +293,15 @@ void Game::spriteFollowedView(float dt)
 	visibleSize.height /= viewScale;
 
 	//view center position control near the edges
-	int x = (position.x < 0) ? MAX(position.x, - (MAP_WIDTH_TIMES / 2 - 0.5 * viewScale) * visibleSize.width) : position.x;
-	int y = (position.y < 0) ? MAX(position.y, - (MAP_HEIGHT_TIMES / 2 - 0.5 * viewScale) * visibleSize.height) : position.y;
+	int x = (position.x < 0) ? MAX(position.x, -(MAP_WIDTH_TIMES / 2 - 0.5 * viewScale) * visibleSize.width) : position.x;
+	int y = (position.y < 0) ? MAX(position.y, -(MAP_HEIGHT_TIMES / 2 - 0.5 * viewScale) * visibleSize.height) : position.y;
 	x = MIN(x, (MAP_WIDTH_TIMES / 2 - 0.5 * viewScale) * visibleSize.width);
 	y = MIN(y, (MAP_HEIGHT_TIMES / 2 - 0.5 * viewScale) * visibleSize.height);
-	
+
 	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);//player born location, not completed
 	Vec2 pointB = Vec2(x, y);
 	log("viewScale: %f", viewScale);
-	//log("target position (%f, %f)", pointB.x, pointB.y);
+	log("target position (%f, %f)", pointB.x, pointB.y);
 
 	/*pointA.x /= viewScale;
 	pointA.y /= viewScale;
@@ -311,7 +309,7 @@ void Game::spriteFollowedView(float dt)
 	pointB.y /= viewScale;*/
 	Vec2 offset = pointA - pointB;
 
-	//log("offset (%f, %f)", offset.x, offset.y);
+	log("offset (%f, %f)", offset.x, offset.y);
 	this->setPosition(offset);
 }
 
@@ -330,7 +328,7 @@ void Game::createLittleParticles()
 		Sprite* littleParticle = Sprite::createWithTexture(batchNode->getTexture());
 		littleParticle->setTag(LITTLE_PARTICLE_TAG);
 
-		Size particleSize(5, 5);
+		Size particleSize(20, 20);
 		auto particleBody = PhysicsBody::createBox(particleSize);
 		particleBody->setGravityEnable(false);
 		particleBody->setContactTestBitmask(0x07);//0111
@@ -377,8 +375,8 @@ bool Game::contactBegin(PhysicsContact& contact)
 
 	if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
 	{
-		playerScale = INIT_PLAYER_SCALE * pow(playerScale * (1 + 0.02) / INIT_PLAYER_SCALE, 1.0 / 1.01);//needing a better math function
-		player->runAction(ScaleTo::create(0.25, playerScale));
+		playerScale = pow(playerScale + 0.02, 1.0 / 1.001);//needing a better math function
+		player->runAction(ScaleTo::create(0, playerScale));
 		this->removeChild(littleParticle);
 		log("player scale: %f", playerScale);
 	}
@@ -390,8 +388,11 @@ bool Game::contactBegin(PhysicsContact& contact)
 void Game::viewFollowingPlayerScale(float dt)
 {
 	//this->setScale(0.5);
-	Game::viewScale = sqrt(playerScale / INIT_PLAYER_SCALE);//need to be changed
+	Game::viewScale = pow(this->playerScale, 1.0 / 3);
 	this->setScale(1.0 / viewScale);
 	Size visibleSize = Director::getInstance()->getVisibleSize();
+
+	auto node = this->getChildByTag(EDGE_NODE_TAG);
+	node->setScale(1.0 / viewScale);
 	//log("visibleSize (%f, %f)", visibleSize.width, visibleSize.height);
 }

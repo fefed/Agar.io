@@ -19,11 +19,11 @@ public:
 	bool touchBegan(Touch* touch, Event* event);
 	void touchMoved(Touch* touch, Event* event);
 	void touchEnded(Touch* touch, Event* event);
-	
+
 	//old version
 	//move the view
 	//void setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus);
-	
+
 	//move the view using schedule
 	virtual void spriteFollowedView(float dt);
 
@@ -34,10 +34,10 @@ public:
 	void createLittleParticles();
 
 	bool contactBegin(PhysicsContact& contact);
-	
-	float playerScale = 1.0 / 20;
+
+	float playerScale = 1.0;
 	float viewScale = 1.0;// > 1.0
 
-	// implement the "static create()" method manually
+						  // implement the "static create()" method manually
 	CREATE_FUNC(Game);
 };
