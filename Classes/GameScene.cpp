@@ -10,6 +10,7 @@
 #define MAP_WIDTH_TIMES 10
 #define MAP_HEIGHT_TIMES 10
 #define INIT_PARTICLE_NUM 5000
+#define LITTLE_PARTICLE_TAG 4
 
 USING_NS_CC;
 
@@ -42,6 +43,7 @@ bool Game::init()
 	//world edge
 	Size worldSize(MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height);
 	auto worldBody = PhysicsBody::createEdgeBox(worldSize, PHYSICSBODY_MATERIAL_DEFAULT, 5.0);
+	worldBody->setGravityEnable(false);
 	worldBody->setDynamic(false);
 
 	auto edgeNode = Node::create();
@@ -73,6 +75,8 @@ bool Game::init()
 
 	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 2);
 	playerBody->setGravityEnable(false);
+	playerBody->setContactTestBitmask(0x03);//0011
+	playerBody->setCollisionBitmask(0x00);
 	player->setPhysicsBody(playerBody);
 
 	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
@@ -103,15 +107,21 @@ void Game::onEnter()
 	Scene::onEnter();
 	log("GameScene onEnter");
 
-	auto listener = EventListenerTouchOneByOne::create();
+	auto touchListener = EventListenerTouchOneByOne::create();
 
-	listener->setSwallowTouches(true);
-	listener->onTouchBegan = CC_CALLBACK_2(Game::touchBegan, this);
-	listener->onTouchMoved = CC_CALLBACK_2(Game::touchMoved, this);
-	listener->onTouchEnded = CC_CALLBACK_2(Game::touchEnded, this);
+	touchListener->setSwallowTouches(true);
+	touchListener->onTouchBegan = CC_CALLBACK_2(Game::touchBegan, this);
+	touchListener->onTouchMoved = CC_CALLBACK_2(Game::touchMoved, this);
+	touchListener->onTouchEnded = CC_CALLBACK_2(Game::touchEnded, this);
 
 	EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
-	eventDispatcher->addEventListenerWithSceneGraphPriority(listener, getChildByTag(PLAYER_SPRITE_TAG));
+	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));
+
+
+	auto contactListener = EventListenerPhysicsContact::create();
+	contactListener->onContactBegin = CC_CALLBACK_1(Game::contactBegin, this);
+
+	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(contactListener, 1);
 }
 
 
@@ -269,7 +279,7 @@ void Game::spriteFollowingView(float dt)
 	Sprite* player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
-	log("sprite position (%f, %f)", position.x, position.y);
+	//log("sprite position (%f, %f)", position.x, position.y);
 
 	//view center position control near the edges
 	int x = (position.x < 0) ? MAX(position.x, - (MAP_WIDTH_TIMES / 2 - 0.5) * visibleSize.width) : position.x;
@@ -279,11 +289,11 @@ void Game::spriteFollowingView(float dt)
 	
 	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);
 	Vec2 pointB = Vec2(x, y);
-	log("target position (%f, %f)", pointB.x, pointB.y);
+	//log("target position (%f, %f)", pointB.x, pointB.y);
 
 	Vec2 offset = pointA - pointB;
 
-	log("offset (%f, %f)", offset.x, offset.y);
+	//log("offset (%f, %f)", offset.x, offset.y);
 	this->setPosition(offset);
 }
 
@@ -301,6 +311,14 @@ void Game::createLittleParticles()
 	for (int amount = 0; amount < INIT_PARTICLE_NUM; amount++)
 	{
 		Sprite* littleParticle = Sprite::createWithTexture(batchNode->getTexture());
+		littleParticle->setTag(LITTLE_PARTICLE_TAG);
+
+		Size particleSize(5, 5);
+		auto particleBody = PhysicsBody::createBox(particleSize);
+		particleBody->setGravityEnable(false);
+		particleBody->setContactTestBitmask(0x07);//0111
+		particleBody->setCollisionBitmask(0x00);
+		littleParticle->setPhysicsBody(particleBody);
 
 		float posX = (MAP_WIDTH_TIMES * visibleSize.width - 2 * 50) * CCRANDOM_0_1()//50 pixels reserved for each edge
 			- (MAP_WIDTH_TIMES * visibleSize.width / 2 - 50);
@@ -333,4 +351,21 @@ void Game::createLittleParticles()
 
 		this->addChild(littleParticle, 1);
 	}
+}
+
+bool Game::contactBegin(PhysicsContact& contact)
+{
+	auto player = (Sprite*)contact.getShapeA()->getBody()->getNode();
+	auto littleParticle = (Sprite*)contact.getShapeB()->getBody()->getNode();
+
+	if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
+	{
+		playerScale = pow(playerScale + 0.05, 1.0 / 1.005);//needing a better math function
+		player->runAction(ScaleTo::create(0.25, playerScale));
+		this->removeChild(littleParticle);
+		log("player scale: %f", playerScale);
+	}
+
+	log("onContactBegin");
+	return true;
 }

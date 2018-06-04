@@ -30,6 +30,9 @@ public:
 	//create little particles
 	void createLittleParticles();
 
+	bool contactBegin(PhysicsContact& contact);
+	float playerScale = 1.0;
+
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);
 };
