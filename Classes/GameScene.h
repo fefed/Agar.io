@@ -38,6 +38,6 @@ public:
 	float playerScale = 1.0;
 	float viewScale = 1.0;// > 1.0
 
-	// implement the "static create()" method manually
+						  // implement the "static create()" method manually
 	CREATE_FUNC(Game);
 };
