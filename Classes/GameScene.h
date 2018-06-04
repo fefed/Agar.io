@@ -35,7 +35,7 @@ public:
 
 	bool contactBegin(PhysicsContact& contact);
 	
-	float playerScale = 1.0;
+	float playerScale = 1.0 / 20;
 	float viewScale = 1.0;// > 1.0
 
 	// implement the "static create()" method manually
