@@ -5,7 +5,8 @@
 #include "GameScene.h"
 
 USING_NS_CC;
-
+using namespace CocosDenshion;
+auto audio = SimpleAudioEngine::getInstance();
 Scene* HelloWorld::createScene()
 {
     return HelloWorld::create();
@@ -21,6 +22,8 @@ static void problemLoading(const char* filename)
 // on "init" you need to initialize your instance
 bool HelloWorld::init()
 {
+	audio->preloadBackgroundMusic("music/test2.mp3");
+	audio->playBackgroundMusic("music/test2.mp3", true);
     //////////////////////////////
     // 1. super init first
     if ( !Scene::init() )
