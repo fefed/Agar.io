@@ -1,8 +1,11 @@
 #pragma once
 
 #include "cocos2d.h"
+//#include "BallClass.h"
+#include<vector>
 
 USING_NS_CC;
+using namespace std;
 
 class Game : public cocos2d::Scene
 {
@@ -35,8 +38,10 @@ public:
 	void createLittleParticles(int amount);
 
 	bool contactBegin(PhysicsContact& contact);
+	
+	void mouseUp(Event* event);
 
-	float playerScale = 1.0;
+	//float playerScale = 1.0;
 	float viewScale = 1.0;// > 1.0
 	//int particlesEaten = 0;
 
@@ -47,6 +52,9 @@ public:
 	void tooLargeScaleControl(float dt);
 
 	void createParticlesByTime(float dt);
+
+	//vector<Ball*> vecPlayerBall;
+	vector<Sprite*> vecPlayerSprite;
 
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);

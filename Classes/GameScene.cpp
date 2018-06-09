@@ -12,6 +12,7 @@
 #define INIT_PARTICLE_NUM 2000
 #define LITTLE_PARTICLE_TAG 4
 #define EDGE_NODE_TAG 5
+#define CONTACT_TAG 6
 
 USING_NS_CC;
 
@@ -70,8 +71,9 @@ bool Game::init()
 
 
 	//create player sprite using polygen sprite
-	auto playerPInfo = AutoPolygon::generatePolygon("game/player50x50.png");
-	auto player = Sprite::create(playerPInfo);
+	//auto playerPInfo = AutoPolygon::generatePolygon("game/player50x50.png");
+	//auto player = Sprite::create(playerPInfo);
+	auto player = Sprite::create("game/player50x50.png");
 	player->setTag(PLAYER_SPRITE_TAG);
 
 	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
@@ -82,6 +84,8 @@ bool Game::init()
 
 	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
 	this->addChild(player, 2);
+
+	vecPlayerSprite.push_back(player);
 
 	//create little particles when initialize
 	createLittleParticles(INIT_PARTICLE_NUM);
@@ -116,7 +120,7 @@ void Game::onEnter()
 	touchListener->onTouchEnded = CC_CALLBACK_2(Game::touchEnded, this);
 
 	EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
-	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));
+	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));//? ? ?
 
 
 	//contact listener in physics engine
@@ -124,6 +128,14 @@ void Game::onEnter()
 	contactListener->onContactBegin = CC_CALLBACK_1(Game::contactBegin, this);
 
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(contactListener, 1);
+
+
+	//Mouse listener
+	//release right mouse button to divide
+	auto mouseListener = EventListenerMouse::create();
+	mouseListener->onMouseUp = CC_CALLBACK_1(Game::mouseUp, this);
+
+	Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(mouseListener, this);
 
 
 	//call function that changes view size using schedule
@@ -143,6 +155,8 @@ void Game::onExit()
 
 	unschedule(schedule_selector(Game::tooLargeScaleControl));
 	unschedule(schedule_selector(Game::createParticlesByTime));
+	
+	//dismiss dispatchers?
 }
 
 
@@ -293,10 +307,61 @@ void Game::touchEnded(Touch * touch, Event * event)
 }
 
 
+//when release right mouse button, divide
+void Game::mouseUp(Event* event)
+{
+	EventMouse* e = (EventMouse*)event;
+	if (e->getMouseButton() == EventMouse::MouseButton::BUTTON_RIGHT)
+	{
+		log("Mouse up");
+		int playerSpriteNum = vecPlayerSprite.size();
+		for (int i = 0; i < playerSpriteNum; i++)
+		{
+			if (vecPlayerSprite[i]->getScale() > 1.5)
+			{
+				vecPlayerSprite[i]->setScale(0.707 * vecPlayerSprite[i]->getScale());
+
+				auto player = Sprite::create("game/player50x50.png");
+				player->setTag(PLAYER_SPRITE_TAG);
+
+				auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+				playerBody->setGravityEnable(false);
+				playerBody->setContactTestBitmask(0x03);//0011
+				playerBody->setCollisionBitmask(0x01);
+				player->setPhysicsBody(playerBody);
+
+				if (previous_kind_of_move_action == 1)
+					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x,
+						vecPlayerSprite[i]->getPosition().y + 10 * previous_if_y_is_minus));
+				if (previous_kind_of_move_action == 2)
+					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x + 10 * previous_if_x_is_minus,
+						vecPlayerSprite[i]->getPosition().y + 10 * previous_if_y_is_minus));
+				else
+					if (previous_kind_of_move_action == 1)
+						player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x + 10 * previous_if_x_is_minus,
+							vecPlayerSprite[i]->getPosition().y));
+
+				player->setScale(vecPlayerSprite[i]->getScale());
+				this->addChild(player, 2);
+
+				vecPlayerSprite.push_back(player);
+			}
+		}
+	}
+}
+
+
 //move the view using schedule
 void Game::spriteFollowedView(float dt)
 {
-	Sprite* player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
+	int ballIndex = 0;
+	for (int i = 1; i < vecPlayerSprite.size(); i++)
+	{
+		if (vecPlayerSprite[i]->getScale() > vecPlayerSprite[ballIndex]->getScale())
+			ballIndex = i;
+	}
+
+	Sprite* player = vecPlayerSprite[ballIndex];
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	//log("sprite position (%f, %f)", position.x, position.y);
@@ -382,10 +447,12 @@ void Game::createLittleParticles(int particleAmount)
 //now only suitable for one sprite
 void Game::refreshPlayerScale(int plusOrMinus)
 {
+	auto player = (Sprite*)getChildByTag(CONTACT_TAG);
+	float playerScale = player->getScale();
+
 	if (playerScale < 4.18 || plusOrMinus < 0)
-	{	
+	{
 		//particlesEaten += plusOrMinus;
-		auto player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
 
 		//this function: when playerScale is near 4.1799-4.1800, it will hardly increase
 		//when playerScale >= 4.1800(through eating others), this function will make playerScale decrease
@@ -403,9 +470,11 @@ bool Game::contactBegin(PhysicsContact& contact)
 
 	if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
 	{
+		player->setTag(CONTACT_TAG);
 		refreshPlayerScale(1);
+		player->setTag(PLAYER_SPRITE_TAG);
 		this->removeChild(littleParticle);//little particle swallowed
-		log("player scale: %f", playerScale);
+		//log("player scale: %f", playerScale);
 	}
 
 	log("onContactBegin");
@@ -415,7 +484,17 @@ bool Game::contactBegin(PhysicsContact& contact)
 //change the view size using schedule
 void Game::viewFollowingPlayerScale(float dt)
 {
-	Game::viewScale = pow(this->playerScale, 1.0 / 3);
+	int playerSpriteNum = vecPlayerSprite.size();
+	float playerScale = vecPlayerSprite[0]->getScale();
+	for (int i = 1; i < playerSpriteNum; i++)
+	{
+		if (vecPlayerSprite[i]->getScale() > playerScale)
+			playerScale = vecPlayerSprite[i]->getScale();
+	}
+	playerScale *= pow((float)playerSpriteNum, 1.01);//math function needs to be changed
+
+
+	Game::viewScale = pow(playerScale, 1.0 / 3);
 	this->setScale(1.0 / viewScale);
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 
@@ -429,10 +508,14 @@ void Game::tooLargeScaleControl(float dt)
 {
 	//if player scale too large, decrease with time passing
 	//refer to function refreshPlayerScale()
-	if (playerScale >= 4.8)
+	for (int i = 0; i < vecPlayerSprite.size(); i++)
 	{
-		refreshPlayerScale(-1);
-		log("scale decrease");
+		float playerScale = vecPlayerSprite[i]->getScale();
+		if (playerScale >= 4.8)
+		{
+			refreshPlayerScale(-1);
+			log("scale decrease");
+		}
 	}
 }
 
