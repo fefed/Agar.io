@@ -17,19 +17,12 @@ USING_NS_CC;
 
 Scene* Game::createScene()
 {
-	/*auto scene = Scene::createWithPhysics();
-	//scene->getPhysicsWorld()->setDebugDrawMask(PhysicsWorld::DEBUGDRAW_ALL);
-
-	auto layer = Game::create();
-	scene->addChild(layer);
-
-	return scene;*/
-
 	return Game::create();
 }
 
 bool Game::init()
 {
+	//initialize using physics engine
 	if (!Scene::initWithPhysics())
 	{
 		return false;
@@ -43,7 +36,8 @@ bool Game::init()
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
 
-	//world edge
+
+	//world edge collision
 	Size worldSize(MAP_WIDTH_TIMES * visibleSize.width, MAP_HEIGHT_TIMES * visibleSize.height);
 	auto worldBody = PhysicsBody::createEdgeBox(worldSize, PHYSICSBODY_MATERIAL_DEFAULT, 50.0);
 	worldBody->setDynamic(false);
@@ -54,22 +48,26 @@ bool Game::init()
 	edgeNode->setPhysicsBody(worldBody);
 	this->addChild(edgeNode);
 
+
 	//tile map
 	auto backGround = Sprite::create("game/greyTile.png", Rect(0, 0,
-		2 * MAP_WIDTH_TIMES * visibleSize.width, 2 * MAP_HEIGHT_TIMES * visibleSize.height));//map size
+		(MAP_WIDTH_TIMES + 4) * visibleSize.width, (MAP_HEIGHT_TIMES + 4) * visibleSize.height));//map size, +4 for avoiding the black background edge bug
 	Texture2D::TexParams tp = { GL_LINEAR, GL_LINEAR, GL_REPEAT, GL_REPEAT };
 	backGround->getTexture()->setTexParameters(tp);
 	backGround->setPosition(origin.x, origin.y);
 	this->addChild(backGround, 0);
 
+
 	//back button for the convenience of testing
-	auto backMenuItem = MenuItemImage::create("secondMenu/backNorma.png", "secondMenu/backChosen.png",//Norma instead of Normal for a strange bug
+	//not work now
+	/*auto backMenuItem = MenuItemImage::create("secondMenu/backNorma.png", "secondMenu/backChosen.png",//Norma instead of Normal for a strange bug
 		CC_CALLBACK_1(Game::menuBackCallback, this));
 	backMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(visibleSize.width - 121 / 2, visibleSize.height - 38 / 2)));//Size 121*38
 
 	Menu* mn = Menu::create(backMenuItem, NULL);
 	mn->setPosition(Vec2::ZERO);
-	this->addChild(mn, 0);
+	this->addChild(mn, 0);*/
+
 
 	//create player sprite using polygen sprite
 	auto playerPInfo = AutoPolygon::generatePolygon("game/player50x50.png");
@@ -86,14 +84,12 @@ bool Game::init()
 	this->addChild(player, 2);
 
 	//create little particles when initialize
-	createLittleParticles();
+	createLittleParticles(INIT_PARTICLE_NUM);
 
-	//test sign for (0,0)
-	auto test = Sprite::create("HelloWorld.png");
+	//test sign for (-5120,0)
+	/*auto test = Sprite::create("HelloWorld.png");
 	test->setPosition(Vec2(-5120, 0));
-	this->addChild(test, 0);
-
-	//to be compeleted...
+	this->addChild(test, 0);*/
 
 	return true;
 }
@@ -110,6 +106,8 @@ void Game::onEnter()
 	Scene::onEnter();
 	log("GameScene onEnter");
 
+
+	//Touch listener
 	auto touchListener = EventListenerTouchOneByOne::create();
 
 	touchListener->setSwallowTouches(true);
@@ -121,18 +119,34 @@ void Game::onEnter()
 	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));
 
 
+	//contact listener in physics engine
 	auto contactListener = EventListenerPhysicsContact::create();
 	contactListener->onContactBegin = CC_CALLBACK_1(Game::contactBegin, this);
 
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(contactListener, 1);
 
+
 	//call function that changes view size using schedule
 	this->schedule(schedule_selector(Game::viewFollowingPlayerScale), 1.0 / 60.0);
+	
+	//call function that contorls player scale when it is too large
+	this->schedule(schedule_selector(Game::tooLargeScaleControl), 6.0 / 60.0);
+
+	//call function to create little particles
+	this->schedule(schedule_selector(Game::createParticlesByTime), 2.0);
+}
+
+void Game::onExit()
+{
+	Scene::onExit();
+	log("GameScene onExit");
+
+	unschedule(schedule_selector(Game::tooLargeScaleControl));
+	unschedule(schedule_selector(Game::createParticlesByTime));
 }
 
 
 //move by touch
-
 int previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action;//record previous action types
 clock_t moveStartTime = clock();//record time to control the interval of calling the function touchMoved
 
@@ -285,7 +299,7 @@ void Game::spriteFollowedView(float dt)
 	Sprite* player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
 	Vec2 position = player->getPosition();
 	Size visibleSize = Director::getInstance()->getVisibleSize();
-	log("sprite position (%f, %f)", position.x, position.y);
+	//log("sprite position (%f, %f)", position.x, position.y);
 
 	position.x /= viewScale;
 	position.y /= viewScale;
@@ -298,32 +312,28 @@ void Game::spriteFollowedView(float dt)
 	x = MIN(x, (MAP_WIDTH_TIMES / 2 - 0.5 * viewScale) * visibleSize.width);
 	y = MIN(y, (MAP_HEIGHT_TIMES / 2 - 0.5 * viewScale) * visibleSize.height);
 
-	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);//player born location, not completed
+	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);//linked to player born location, not completed
 	Vec2 pointB = Vec2(x, y);
-	log("viewScale: %f", viewScale);
-	log("target position (%f, %f)", pointB.x, pointB.y);
+	//log("viewScale: %f", viewScale);
+	//log("target position (%f, %f)", pointB.x, pointB.y);
 
-	/*pointA.x /= viewScale;
-	pointA.y /= viewScale;
-	pointB.x /= viewScale;
-	pointB.y /= viewScale;*/
 	Vec2 offset = pointA - pointB;
 
-	log("offset (%f, %f)", offset.x, offset.y);
+	//log("offset (%f, %f)", offset.x, offset.y);
 	this->setPosition(offset);
 }
 
 //Create little particles
-void Game::createLittleParticles()
+void Game::createLittleParticles(int particleAmount)
 {
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 
 	//using SpriteBatchNode to optimize
 	//but this can be replaced by normal sprite::create() because it is automatically applied after cocos2dx 3.0 beta
-	SpriteBatchNode* batchNode = SpriteBatchNode::create("game/littleParticle.png", INIT_PARTICLE_NUM);
+	SpriteBatchNode* batchNode = SpriteBatchNode::create("game/littleParticle.png", particleAmount);
 	this->addChild(batchNode);
 
-	for (int amount = 0; amount < INIT_PARTICLE_NUM; amount++)
+	for (int amount = 0; amount < particleAmount; amount++)
 	{
 		Sprite* littleParticle = Sprite::createWithTexture(batchNode->getTexture());
 		littleParticle->setTag(LITTLE_PARTICLE_TAG);
@@ -335,10 +345,10 @@ void Game::createLittleParticles()
 		particleBody->setCollisionBitmask(0x00);
 		littleParticle->setPhysicsBody(particleBody);
 
-		float posX = (MAP_WIDTH_TIMES * visibleSize.width - 2 * 50) * CCRANDOM_0_1()//50 pixels reserved for each edge
-			- (MAP_WIDTH_TIMES * visibleSize.width / 2 - 50);
-		float posY = (MAP_HEIGHT_TIMES * visibleSize.height - 2 * 50) * CCRANDOM_0_1()//50 pixels reserved for each edge
-			- (MAP_HEIGHT_TIMES * visibleSize.height / 2 - 50);
+		float posX = (MAP_WIDTH_TIMES * visibleSize.width - 2 * 100) * CCRANDOM_0_1()//100 pixels reserved for each edge
+			- (MAP_WIDTH_TIMES * visibleSize.width / 2 - 100);
+		float posY = (MAP_HEIGHT_TIMES * visibleSize.height - 2 * 100) * CCRANDOM_0_1()//100 pixels reserved for each edge
+			- (MAP_HEIGHT_TIMES * visibleSize.height / 2 - 100);
 		littleParticle->setPosition(Vec2(posX, posY));
 
 		int colorType = (int)(6 * CCRANDOM_0_1()) % 6;
@@ -368,6 +378,24 @@ void Game::createLittleParticles()
 	}
 }
 
+//refresh playerScale
+//now only suitable for one sprite
+void Game::refreshPlayerScale(int plusOrMinus)
+{
+	if (playerScale < 4.18 || plusOrMinus < 0)
+	{	
+		//particlesEaten += plusOrMinus;
+		auto player = (Sprite*)getChildByTag(PLAYER_SPRITE_TAG);
+
+		//this function: when playerScale is near 4.1799-4.1800, it will hardly increase
+		//when playerScale >= 4.1800(through eating others), this function will make playerScale decrease
+		//so when playerScale >= 4.18, just make it unable to increase through eating little particles,
+		//but decrease with time passing by through calling tooLargeScaleControl
+		playerScale = pow(playerScale + 0.03, 1.0 / 1.005);
+		player->runAction(ScaleTo::create(0, playerScale));//player scale changes
+	}
+}
+
 bool Game::contactBegin(PhysicsContact& contact)
 {
 	auto player = (Sprite*)contact.getShapeA()->getBody()->getNode();
@@ -375,9 +403,8 @@ bool Game::contactBegin(PhysicsContact& contact)
 
 	if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
 	{
-		playerScale = pow(playerScale + 0.02, 1.0 / 1.001);//needing a better math function
-		player->runAction(ScaleTo::create(0, playerScale));
-		this->removeChild(littleParticle);
+		refreshPlayerScale(1);
+		this->removeChild(littleParticle);//little particle swallowed
 		log("player scale: %f", playerScale);
 	}
 
@@ -385,9 +412,9 @@ bool Game::contactBegin(PhysicsContact& contact)
 	return true;
 }
 
+//change the view size using schedule
 void Game::viewFollowingPlayerScale(float dt)
 {
-	//this->setScale(0.5);
 	Game::viewScale = pow(this->playerScale, 1.0 / 3);
 	this->setScale(1.0 / viewScale);
 	Size visibleSize = Director::getInstance()->getVisibleSize();
@@ -395,4 +422,21 @@ void Game::viewFollowingPlayerScale(float dt)
 	auto node = this->getChildByTag(EDGE_NODE_TAG);
 	node->setScale(1.0 / viewScale);
 	//log("visibleSize (%f, %f)", visibleSize.width, visibleSize.height);
+}
+
+//control player scale when it is too large using schedule
+void Game::tooLargeScaleControl(float dt)
+{
+	//if player scale too large, decrease with time passing
+	//refer to function refreshPlayerScale()
+	if (playerScale >= 4.8)
+	{
+		refreshPlayerScale(-1);
+		log("scale decrease");
+	}
+}
+
+void Game::createParticlesByTime(float dt)
+{
+	createLittleParticles(20);
 }

@@ -11,6 +11,7 @@ public:
 
 	virtual bool init();
 	virtual void onEnter();
+	virtual void onExit();
 
 	//menu item callback
 	void menuBackCallback(cocos2d::Ref* pSender);
@@ -31,13 +32,22 @@ public:
 	virtual void viewFollowingPlayerScale(float dt);
 
 	//create little particles
-	void createLittleParticles();
+	void createLittleParticles(int amount);
 
 	bool contactBegin(PhysicsContact& contact);
 
 	float playerScale = 1.0;
 	float viewScale = 1.0;// > 1.0
+	//int particlesEaten = 0;
 
-						  // implement the "static create()" method manually
+	//refresh playerScale
+	void refreshPlayerScale(int plusOrMinus);
+
+	//control player scale when it is too large
+	void tooLargeScaleControl(float dt);
+
+	void createParticlesByTime(float dt);
+
+	// implement the "static create()" method manually
 	CREATE_FUNC(Game);
 };
