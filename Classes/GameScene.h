@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cocos2d.h"
-//#include "BallClass.h"
 #include<vector>
 
 USING_NS_CC;
@@ -17,37 +16,30 @@ public:
 	virtual void onExit();
 
 	//menu item callback
-	void menuBackCallback(cocos2d::Ref* pSender);
+	//void menuBackCallback(cocos2d::Ref* pSender);
 	
-	//touch one by one event callback
-	/*bool touchBegan(Touch* touch, Event* event);
-	void touchMoved(Touch* touch, Event* event);
-	void touchEnded(Touch* touch, Event* event);*/
 
+	//touch one by one event callback
 	virtual bool onTouchBegan(Touch* touch, Event* event);
 	virtual void onTouchMoved(Touch* touch, Event* event);
 	virtual void onTouchEnded(Touch* touch, Event* event);
 
-	//old version
-	//move the view
-	//void setViewPointCenter(Sprite* player, int kind_of_move_action, int if_x_is_minus, int if_y_is_minus);
+	//right mouse
+	void mouseUp(Event* event);
+
 
 	//move the view using schedule
 	virtual void spriteFollowedView(float dt);
+	Vec2 viewOffset;
 
 	//change the view size using schedule
 	virtual void viewFollowingPlayerScale(float dt);
-
-	//create little particles
-	void createLittleParticles(int amount);
-
-	bool contactBegin(PhysicsContact& contact);
-	
-	void mouseUp(Event* event);
-
-	//float playerScale = 1.0;
 	float viewScale = 1.0;// > 1.0
-	//int particlesEaten = 0;
+
+	//calculate center of the player's sprites using schedule
+	void calCenter(float dt);
+	Vec2 playerCenter;
+
 
 	//refresh playerScale
 	void refreshPlayerScale(int plusOrMinus);
@@ -55,14 +47,16 @@ public:
 	//control player scale when it is too large
 	void tooLargeScaleControl(float dt);
 
+
+	//create little particles
+	void createLittleParticles(int amount);
 	void createParticlesByTime(float dt);
 
-	//vector<Ball*> vecPlayerBall;
-	vector<Sprite*> vecPlayerSprite;
-	Layer* playerSpriteLayer;
+	//enable player to swallow particles using physics engine contact
+	bool contactBegin(PhysicsContact& contact);
 	
-	Vec2 playerCenter;
-	void calCenter(float dt);
+
+	vector<Sprite*> vecPlayerSprite;	
 	
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);
