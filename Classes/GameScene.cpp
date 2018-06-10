@@ -82,18 +82,30 @@ bool Game::init()
 	playerBody->setCollisionBitmask(0x01);
 	player->setPhysicsBody(playerBody);
 
-	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
+	/*playerSpriteLayer = Layer::create();
+	playerSpriteLayer->init();
+	playerSpriteLayer->setTouchEnabled(true);
+	playerSpriteLayer->setTouchMode(Touch::DispatchMode::ONE_BY_ONE);
+
+	playerSpriteLayer->setPosition(Vec2(0, 0));
+	this->addChild(playerSpriteLayer, 2);
+
+	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));//player initial position, to be completed
+	playerSpriteLayer->addChild(player);*/
+
+	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));//player initial position, to be completed
 	this->addChild(player, 2);
 
 	vecPlayerSprite.push_back(player);
 
+
 	//create little particles when initialize
 	createLittleParticles(INIT_PARTICLE_NUM);
 
-	//test sign for (-5120,0)
-	/*auto test = Sprite::create("HelloWorld.png");
-	test->setPosition(Vec2(-5120, 0));
-	this->addChild(test, 0);*/
+	//test sign for (0,0)
+	auto test = Sprite::create("HelloWorld.png");
+	test->setPosition(Vec2(0, 0));
+	this->addChild(test, 0);
 
 	return true;
 }
@@ -110,17 +122,17 @@ void Game::onEnter()
 	Scene::onEnter();
 	log("GameScene onEnter");
 
-
+	
 	//Touch listener
 	auto touchListener = EventListenerTouchOneByOne::create();
 
 	touchListener->setSwallowTouches(true);
-	touchListener->onTouchBegan = CC_CALLBACK_2(Game::touchBegan, this);
-	touchListener->onTouchMoved = CC_CALLBACK_2(Game::touchMoved, this);
-	touchListener->onTouchEnded = CC_CALLBACK_2(Game::touchEnded, this);
+	touchListener->onTouchBegan = CC_CALLBACK_2(Game::onTouchBegan, this);
+	touchListener->onTouchMoved = CC_CALLBACK_2(Game::onTouchMoved, this);
+	touchListener->onTouchEnded = CC_CALLBACK_2(Game::onTouchEnded, this);
 
 	EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
-	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));//? ? ?
+	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));//? 
 
 
 	//contact listener in physics engine
@@ -146,6 +158,9 @@ void Game::onEnter()
 
 	//call function to create little particles
 	this->schedule(schedule_selector(Game::createParticlesByTime), 2.0);
+
+	//call function to calculate center
+	this->schedule(schedule_selector(Game::calCenter), 1.0 / 60.0);
 }
 
 void Game::onExit()
@@ -155,13 +170,14 @@ void Game::onExit()
 
 	unschedule(schedule_selector(Game::tooLargeScaleControl));
 	unschedule(schedule_selector(Game::createParticlesByTime));
+	unschedule(schedule_selector(Game::calCenter));
 	
 	//dismiss dispatchers?
 }
 
 
 //move by touch
-int previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action;//record previous action types
+/*int previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action;//record previous action types
 clock_t moveStartTime = clock();//record time to control the interval of calling the function touchMoved
 
 bool Game::touchBegan(Touch* touch, Event* event)
@@ -303,7 +319,177 @@ void Game::touchEnded(Touch * touch, Event * event)
 
 	target->runAction(EaseOut::create(move, 3));*/
 
-	unschedule(schedule_selector(Game::spriteFollowedView));
+	/*unschedule(schedule_selector(Game::spriteFollowedView));
+}*/
+
+int previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action;//record previous action types
+clock_t moveStartTime = clock();//record time to control the interval of calling the function touchMoved
+bool if_is_moving = false;
+bool Game::onTouchBegan(Touch * touch, Event * event)
+{
+	Vec2 locationInNode = convertToWorldSpaceAR(touch->getLocation()) - playerCenter;//needs to be changed
+
+	//8 directions instead of any directions to move smoothly
+	float tan = abs(locationInNode.y / locationInNode.x);
+	previous_if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;//the first direction type, so we use previous_... in file scope
+	previous_if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;//to compare with the next
+
+	for (int i = 0; i < vecPlayerSprite.size(); i++)
+	{
+		auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),//1000 seconds until touchMoved or touchEnded
+			Vec2(0, SPEED * previous_if_y_is_minus));
+		auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+			Vec2(0.707 * SPEED * previous_if_x_is_minus, 0.707 * SPEED * previous_if_y_is_minus));
+		auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+			Vec2(SPEED * previous_if_x_is_minus, 0));
+		move1->setTag(MOVE_ACTION_1);//set tag for actions to stop them in the following function
+		move2->setTag(MOVE_ACTION_2);
+		move3->setTag(MOVE_ACTION_3);
+
+		if (tan > 2.4142)//tan 77.5
+		{
+			vecPlayerSprite[i]->runAction(move1);
+			previous_kind_of_move_action = 1;
+		}
+		else if (tan > 0.4142)//tan 22.5
+		{
+			vecPlayerSprite[i]->runAction(move2);
+			previous_kind_of_move_action = 2;
+		}
+		else
+		{
+			vecPlayerSprite[i]->runAction(move3);
+			previous_kind_of_move_action = 3;
+		}
+	}
+
+	//call function that changes view position using schedule
+	this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
+	
+	if_is_moving = true;
+
+	return true;
+}
+
+void Game::onTouchMoved(Touch * touch, Event * event)
+{	
+	//Function calling inteval(ms)
+	//if the interval is too short, funtion calling too frequent, the sprite cannot move or change directions smoothly
+	if (clock() - moveStartTime > 100)
+	{
+		Vec2 locationInNode = convertToWorldSpaceAR(touch->getLocation()) - playerCenter;//needs to be changed
+		//log("touch location: (%f,%f)", touch->getLocation().x, touch->getLocation().y);
+		//log("player center: (%f,%f)", playerCenter.x, playerCenter.y);
+		//log("offset: (%f,%f)", locationInNode.x, locationInNode.y);
+
+		float tan = abs(locationInNode.y / locationInNode.x);
+		int if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;//maybe a new diretion, so we use them without previous_...
+		int if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;
+		//log("tan: %f, x: %d, y: %d", tan, if_x_is_minus, if_y_is_minus);
+
+		bool if_move_action_is_same = true;
+		int kind_of_move_action;
+
+		if ((if_x_is_minus == previous_if_x_is_minus) && (if_y_is_minus == previous_if_y_is_minus))
+		{
+			if (tan > 2.4142)
+			{
+				if (previous_kind_of_move_action == 1);//the direction is the same as it is previously, so we do nothing
+				else
+				{
+					if_move_action_is_same = false;
+					kind_of_move_action = 1;
+				}
+			}
+			else if (tan > 0.4142)
+			{
+				if (previous_kind_of_move_action == 2);
+				else
+				{
+					if_move_action_is_same = false;
+					kind_of_move_action = 2;
+				}
+			}
+			else
+			{
+				if (previous_kind_of_move_action == 3);
+				else
+				{
+					if_move_action_is_same = false;
+					kind_of_move_action = 3;
+				}
+			}
+		}
+		else
+		{
+			if_move_action_is_same = false;
+
+			if (tan > 2.4142)
+				kind_of_move_action = 1;
+			else if (tan > 0.4142)
+				kind_of_move_action = 2;
+			else
+				kind_of_move_action = 3;
+		}
+
+		if (!if_move_action_is_same)
+		{
+			for (int i = 0; i < vecPlayerSprite.size(); i++)
+			{
+				auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+					Vec2(0, SPEED * if_y_is_minus));
+				auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+					Vec2(0.707 * SPEED * if_x_is_minus, 0.707 * SPEED * if_y_is_minus));
+				auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+					Vec2(SPEED * if_x_is_minus, 0));
+				move1->setTag(MOVE_ACTION_1);//tag for stopping
+				move2->setTag(MOVE_ACTION_2);
+				move3->setTag(MOVE_ACTION_3);
+			
+				vecPlayerSprite[i]->stopAllActions();
+				//vecPlayerSprite[i]->stopActionByTag(previous_kind_of_move_action);//since direction should change, the previous action stops
+				previous_kind_of_move_action = kind_of_move_action;//new direction, record this action type to compare with the next
+				previous_if_x_is_minus = if_x_is_minus;
+				previous_if_y_is_minus = if_y_is_minus;
+
+				if (previous_kind_of_move_action == 1)
+					vecPlayerSprite[i]->runAction(move1);
+				else if (previous_kind_of_move_action == 2)
+					vecPlayerSprite[i]->runAction(move2);
+				else
+					vecPlayerSprite[i]->runAction(move3);
+				//log("move%d", kind_of_move_action);
+			}
+		}
+
+		//record time the function ends to control the intervals between two callings
+		moveStartTime = clock();
+	}
+}
+
+void Game::onTouchEnded(Touch * touch, Event * event)
+{
+	for (int i = 0; i < vecPlayerSprite.size(); i++)
+	{
+		vecPlayerSprite[i]->stopAllActions();
+		//vecPlayerSprite[i]->stopActionByTag(previous_kind_of_move_action);
+
+		//when touch ended, stop slowly
+		//not completed...
+		/*ActionInterval* move;
+		if (previous_kind_of_move_action == 1)
+		move = MoveBy::create(0.5, Vec2(0, 2000 * SPEED * previous_if_y_is_minus));
+		else if (previous_kind_of_move_action == 2)
+		move = MoveBy::create(0.5, Vec2(2000 * 0.707 * SPEED * previous_if_x_is_minus, 2000 * 0.707 * SPEED * previous_if_y_is_minus));
+		else
+		move = MoveBy::create(0.5, Vec2(2000 * SPEED * previous_if_x_is_minus, 0));
+
+		target->runAction(EaseOut::create(move, 3));*/
+
+		unschedule(schedule_selector(Game::spriteFollowedView));
+
+		if_is_moving = false;
+	}
 }
 
 
@@ -317,11 +503,12 @@ void Game::mouseUp(Event* event)
 		int playerSpriteNum = vecPlayerSprite.size();
 		for (int i = 0; i < playerSpriteNum; i++)
 		{
-			if (vecPlayerSprite[i]->getScale() > 1.5)
+			if (vecPlayerSprite[i]->getScale() > 1.5) 
 			{
-				vecPlayerSprite[i]->setScale(0.707 * vecPlayerSprite[i]->getScale());
+				vecPlayerSprite[i]->setScale(0.6 * vecPlayerSprite[i]->getScale());//0.707? 
 
 				auto player = Sprite::create("game/player50x50.png");
+				player->setColor(Color3B(0, 0, 0));
 				player->setTag(PLAYER_SPRITE_TAG);
 
 				auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
@@ -330,19 +517,74 @@ void Game::mouseUp(Event* event)
 				playerBody->setCollisionBitmask(0x01);
 				player->setPhysicsBody(playerBody);
 
+				//set the new sprite's position
+				//and make it move(if others are moving)
+				//and adjust the speed of the original sprite
+				log("moving%d", if_is_moving);
+				//if_is_moving = false;
 				if (previous_kind_of_move_action == 1)
+				{
 					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x,
-						vecPlayerSprite[i]->getPosition().y + 10 * previous_if_y_is_minus));
-				if (previous_kind_of_move_action == 2)
-					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x + 10 * previous_if_x_is_minus,
-						vecPlayerSprite[i]->getPosition().y + 10 * previous_if_y_is_minus));
+						vecPlayerSprite[i]->getPosition().y 
+						+ 50 * vecPlayerSprite[i]->getScale() * previous_if_y_is_minus));//100 needs to be changed
+					if (if_is_moving)
+					{
+						//needs to be changed
+
+						/*auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+							Vec2(0, SPEED * previous_if_y_is_minus));
+						move1->setTag(MOVE_ACTION_1);
+
+						vecPlayerSprite[i]->stopAllActions();
+						vecPlayerSprite[i]->runAction(move1);
+
+						player->runAction(move1);
+						log("move1 x%d y%d", previous_if_x_is_minus, previous_if_y_is_minus);*/
+					}
+				}
+				else if (previous_kind_of_move_action == 2)
+				{
+					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x 
+						+ 50 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus,
+						vecPlayerSprite[i]->getPosition().y 
+						+ 50 * vecPlayerSprite[i]->getScale()* previous_if_y_is_minus));
+					if (if_is_moving)
+					{
+						/*auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+							Vec2(0.707 * SPEED * previous_if_x_is_minus, 0.707 * SPEED * previous_if_y_is_minus));
+						move2->setTag(MOVE_ACTION_2);
+
+						vecPlayerSprite[i]->stopAllActions();
+						vecPlayerSprite[i]->runAction(move2);
+
+						player->runAction(move2);
+						log("move2 x%d y%d", previous_if_x_is_minus, previous_if_y_is_minus);*/
+					}
+				}
 				else
-					if (previous_kind_of_move_action == 1)
-						player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x + 10 * previous_if_x_is_minus,
-							vecPlayerSprite[i]->getPosition().y));
+				{
+					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x 
+						+ 50 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus,
+						vecPlayerSprite[i]->getPosition().y));
+					if (if_is_moving)
+					{
+						/*auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+							Vec2(SPEED * previous_if_x_is_minus, 0));
+						move3->setTag(MOVE_ACTION_3);
+
+						vecPlayerSprite[i]->stopAllActions();
+						vecPlayerSprite[i]->runAction(move3);
+
+						player->runAction(move3);
+						log("move3 x%d y%d", previous_if_x_is_minus, previous_if_y_is_minus);*/
+					}
+				}
+				
+				//log("original %f %f", vecPlayerSprite[i]->getPosition().x, vecPlayerSprite[i]->getPosition().y);
+				//log("x %d, y %d, move %d", previous_if_x_is_minus, previous_if_y_is_minus, previous_kind_of_move_action);
 
 				player->setScale(vecPlayerSprite[i]->getScale());
-				this->addChild(player, 2);
+				this->addChild(player);
 
 				vecPlayerSprite.push_back(player);
 			}
@@ -354,7 +596,7 @@ void Game::mouseUp(Event* event)
 //move the view using schedule
 void Game::spriteFollowedView(float dt)
 {
-	int ballIndex = 0;
+	/*int ballIndex = 0;
 	for (int i = 1; i < vecPlayerSprite.size(); i++)
 	{
 		if (vecPlayerSprite[i]->getScale() > vecPlayerSprite[ballIndex]->getScale())
@@ -362,7 +604,8 @@ void Game::spriteFollowedView(float dt)
 	}
 
 	Sprite* player = vecPlayerSprite[ballIndex];
-	Vec2 position = player->getPosition();
+	Vec2 position = player->getPosition();*/
+	Vec2 position = playerCenter;
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	//log("sprite position (%f, %f)", position.x, position.y);
 
@@ -459,7 +702,7 @@ void Game::refreshPlayerScale(int plusOrMinus)
 		//so when playerScale >= 4.18, just make it unable to increase through eating little particles,
 		//but decrease with time passing by through calling tooLargeScaleControl
 		playerScale = pow(playerScale + 0.03, 1.0 / 1.005);
-		player->runAction(ScaleTo::create(0, playerScale));//player scale changes
+		player->setScale(playerScale);//player scale changes
 	}
 }
 
@@ -477,7 +720,7 @@ bool Game::contactBegin(PhysicsContact& contact)
 		//log("player scale: %f", playerScale);
 	}
 
-	log("onContactBegin");
+	//log("onContactBegin");
 	return true;
 }
 
@@ -491,10 +734,10 @@ void Game::viewFollowingPlayerScale(float dt)
 		if (vecPlayerSprite[i]->getScale() > playerScale)
 			playerScale = vecPlayerSprite[i]->getScale();
 	}
-	playerScale *= pow((float)playerSpriteNum, 1.01);//math function needs to be changed
+	playerScale *= pow((float)playerSpriteNum, 3);//math function needs to be changed
 
 
-	Game::viewScale = pow(playerScale, 1.0 / 3);
+	Game::viewScale = pow(0.9 + playerSpriteNum * 0.1, 1.0 / 3.0);
 	this->setScale(1.0 / viewScale);
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 
@@ -522,4 +765,17 @@ void Game::tooLargeScaleControl(float dt)
 void Game::createParticlesByTime(float dt)
 {
 	createLittleParticles(20);
+}
+
+void Game::calCenter(float dt)
+{
+	int spriteNum = vecPlayerSprite.size();
+	float x = 0.0, y = 0.0;
+	for (int i = 0; i < spriteNum; i++)
+	{
+		x += vecPlayerSprite[i]->getPosition().x;
+		y += vecPlayerSprite[i]->getPosition().y;
+	}
+	playerCenter.x = x / spriteNum;
+	playerCenter.y = y / spriteNum;
 }

@@ -18,11 +18,15 @@ public:
 
 	//menu item callback
 	void menuBackCallback(cocos2d::Ref* pSender);
-
+	
 	//touch one by one event callback
-	bool touchBegan(Touch* touch, Event* event);
+	/*bool touchBegan(Touch* touch, Event* event);
 	void touchMoved(Touch* touch, Event* event);
-	void touchEnded(Touch* touch, Event* event);
+	void touchEnded(Touch* touch, Event* event);*/
+
+	virtual bool onTouchBegan(Touch* touch, Event* event);
+	virtual void onTouchMoved(Touch* touch, Event* event);
+	virtual void onTouchEnded(Touch* touch, Event* event);
 
 	//old version
 	//move the view
@@ -55,7 +59,11 @@ public:
 
 	//vector<Ball*> vecPlayerBall;
 	vector<Sprite*> vecPlayerSprite;
-
+	Layer* playerSpriteLayer;
+	
+	Vec2 playerCenter;
+	void calCenter(float dt);
+	
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);
 };
