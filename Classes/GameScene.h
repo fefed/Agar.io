@@ -18,6 +18,7 @@ public:
 	//menu item callback
 	//void menuBackCallback(cocos2d::Ref* pSender);
 	
+	void menuPauseSceneCallback(cocos2d::Ref*pSender);
 
 	//touch one by one event callback
 	virtual bool onTouchBegan(Touch* touch, Event* event);

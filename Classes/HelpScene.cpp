@@ -23,6 +23,10 @@ bool Help::init()
 	backGround->setPosition(Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height / 2));
 	this->addChild(backGround, 0);
 
+	auto label = Label::createWithSystemFont("How To Play\nYou can control the ball\nby clicking left mouse button\nPress the space to pause", "Arial", 56);
+	label->setPosition(Vec2(origin.x + visibleSize.width / 2, origin.y + visibleSize.height / 2));
+	this->addChild(label, 1);
+
 	//Here to add the picture of instructions
 	//to be completed...
 

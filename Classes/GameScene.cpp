@@ -1,5 +1,6 @@
 #include "GameScene.h"
 #include "SimpleAudioEngine.h"
+#include "PauseScene.h"
 #include <time.h>
 
 #define PLAYER_SPRITE_TAG 0
@@ -67,8 +68,8 @@ bool Game::init()
 
 	Menu* mn = Menu::create(backMenuItem, NULL);
 	mn->setPosition(Vec2::ZERO);
-	this->addChild(mn, 0);*/
-
+	this->addChild(mn, 0);
+	*/
 
 	//create player sprite using polygen sprite
 	//auto playerPInfo = AutoPolygon::generatePolygon("game/player50x50.png");
@@ -105,12 +106,29 @@ bool Game::init()
 	Director::getInstance()->popScene();//but not work now
 }*/
 
+// pause the game
+void Game::menuPauseSceneCallback(cocos2d::Ref*pSender)
+{
+	auto psc = PauseScene::create();
+	auto reScene = TransitionCrossFade::create(0.5f, psc);
+	Director::getInstance()->pushScene(reScene);
+}
 
 void Game::onEnter()
 {
 	Scene::onEnter();
 	log("GameScene onEnter");
 
+	// keyboard listener
+	auto KeyBoardListener = EventListenerKeyboard::create();
+	KeyBoardListener->onKeyPressed = [this](EventKeyboard::KeyCode KeyCode, Event*event) {
+		log("The keycode is %d", KeyCode);
+		if (KeyCode == EventKeyboard::KeyCode::KEY_SPACE)
+			Game::menuPauseSceneCallback(this);
+	};
+	KeyBoardListener->onKeyReleased = [](EventKeyboard::KeyCode KeyCode, Event*event) {
+		log("The key code is %d", KeyCode);
+	};
 	
 	//Touch listener
 	auto touchListener = EventListenerTouchOneByOne::create();
@@ -122,7 +140,8 @@ void Game::onEnter()
 
 	EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
 	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));//? 
-
+	
+	eventDispatcher->addEventListenerWithSceneGraphPriority(KeyBoardListener, this);
 
 	//contact listener in physics engine
 	auto contactListener = EventListenerPhysicsContact::create();
@@ -143,7 +162,7 @@ void Game::onEnter()
 	this->schedule(schedule_selector(Game::viewFollowingPlayerScale), 1.0 / 60.0);
 	
 	//call function that contorls player scale when it is too large
-	this->schedule(schedule_selector(Game::tooLargeScaleControl), 6.0 / 60.0);
+	this->schedule(schedule_selector(Game::tooLargeScaleControl), 0.1f);
 
 	//call function to create little particles
 	this->schedule(schedule_selector(Game::createParticlesByTime), 2.0);
@@ -157,7 +176,7 @@ void Game::onExit()
 	Scene::onExit();
 	log("GameScene onExit");
 
-	unschedule(schedule_selector(Game::tooLargeScaleControl));
+    unschedule(schedule_selector(Game::tooLargeScaleControl));
 	unschedule(schedule_selector(Game::createParticlesByTime));
 	unschedule(schedule_selector(Game::calCenter));
 	
@@ -517,7 +536,8 @@ void Game::calCenter(float dt)
 //now only suitable for one sprite
 void Game::refreshPlayerScale(int plusOrMinus)
 {
-	auto player = (Sprite*)getChildByTag(CONTACT_TAG);
+	//auto player = (Sprite*)getChildByTag(CONTACT_TAG);
+	auto player = this->getChildByTag(CONTACT_TAG);
 	float playerScale = player->getScale();
 
 	if (playerScale < 4.18 || plusOrMinus < 0)
@@ -531,11 +551,13 @@ void Game::refreshPlayerScale(int plusOrMinus)
 		playerScale = pow(playerScale + 0.03, 1.0 / 1.005);
 		player->setScale(playerScale);//player scale changes
 	}
+	player->setTag(PLAYER_SPRITE_TAG);
 }
 
 //control player scale when it is too large using schedule
 void Game::tooLargeScaleControl(float dt)
 {
+
 	//if player scale too large, decrease with time passing
 	//refer to function refreshPlayerScale()
 	for (int i = 0; i < vecPlayerSprite.size(); i++)
@@ -620,7 +642,7 @@ bool Game::contactBegin(PhysicsContact& contact)
 	{
 		player->setTag(CONTACT_TAG);
 		refreshPlayerScale(1);
-		player->setTag(PLAYER_SPRITE_TAG);
+		//player->setTag(PLAYER_SPRITE_TAG);
 		this->removeChild(littleParticle);//little particle swallowed
 		//log("player scale: %f", playerScale);
 	}

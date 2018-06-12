@@ -23,7 +23,9 @@ static void problemLoading(const char* filename)
 bool HelloWorld::init()
 {
 	audio->preloadBackgroundMusic("music/test2.mp3");
-	audio->playBackgroundMusic("music/test2.mp3", true);
+	if (audio->isBackgroundMusicPlaying() == true);
+	else
+		audio->playBackgroundMusic("music/test2.mp3", true);
     //////////////////////////////
     // 1. super init first
     if ( !Scene::init() )
