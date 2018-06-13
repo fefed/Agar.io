@@ -74,20 +74,20 @@ bool HelloWorld::init()
 
 	//start button 
 	//size 250*80
-	Sprite* startSpriteNormal = Sprite::create("startScreen/startNormal.png");
-	Sprite* startSpriteSelected = Sprite::create("startScreen/startChosen.png");
+	Sprite* startSpriteNormal = Sprite::create("startScreen/start.png");
+	Sprite* startSpriteSelected = Sprite::create("startScreen/startC.png");//C for chosen
 
 	MenuItemSprite* startMenuItem = MenuItemSprite::create(startSpriteNormal, startSpriteSelected, 
 		CC_CALLBACK_1(HelloWorld::menuItemStartCallback, this));
 	startMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(visibleSize.width/2, visibleSize.height/2)));
 	
 	//Help button
-	MenuItemImage* helpMenuItem = MenuItemImage::create("startScreen/helpNormal.png", "startScreen/helpChosen.png", 
+	MenuItemImage* helpMenuItem = MenuItemImage::create("startScreen/help.png", "startScreen/helpC.png", 
 		CC_CALLBACK_1(HelloWorld::menuItemHelpCallback, this));
 	helpMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(visibleSize.width / 2, visibleSize.height / 2 + 120)));
 
 	//Options button
-	MenuItemImage* optionsMenuItem = MenuItemImage::create("startScreen/optionsNormal.png", "startScreen/optionsChose.png", //Chose instead of Chosen for a strange bug
+	MenuItemImage* optionsMenuItem = MenuItemImage::create("startScreen/options.png", "startScreen/optionsC.png",
 		CC_CALLBACK_1(HelloWorld::menuItemOptionsCallback, this));
 	optionsMenuItem->setPosition(Director::getInstance()->convertToGL(Vec2(visibleSize.width / 2, visibleSize.height / 2 + 2 * 120)));
 

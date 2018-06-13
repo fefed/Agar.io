@@ -2,6 +2,7 @@
 #include "SimpleAudioEngine.h"
 #include "PauseScene.h"
 #include <time.h>
+#include <stdlib.h>
 
 #define PLAYER_SPRITE_TAG 0
 #define MOVE_ACTION_1 1
@@ -83,7 +84,12 @@ bool Game::init()
 	playerBody->setCollisionBitmask(0x01);
 	player->setPhysicsBody(playerBody);
 
-	player->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));//player initial position, to be completed
+
+	//player initial position
+	srand(time(NULL));
+	player->setPosition(Vec2(rand() % (int)((MAP_WIDTH_TIMES - 1) * visibleSize.width) - (MAP_WIDTH_TIMES - 1) / 2.0 * visibleSize.width,
+		rand() % (int)((MAP_HEIGHT_TIMES - 1) * visibleSize.height) - (MAP_HEIGHT_TIMES - 1) / 2.0 * visibleSize.height));
+	log("%f, %f", player->getPosition().x, player->getPosition().y);
 	this->addChild(player, 2);
 
 	vecPlayerSprite.push_back(player);
@@ -130,6 +136,7 @@ void Game::onEnter()
 		log("The key code is %d", KeyCode);
 	};
 	
+
 	//Touch listener
 	auto touchListener = EventListenerTouchOneByOne::create();
 
@@ -142,6 +149,7 @@ void Game::onEnter()
 	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));//? 
 	
 	eventDispatcher->addEventListenerWithSceneGraphPriority(KeyBoardListener, this);
+
 
 	//contact listener in physics engine
 	auto contactListener = EventListenerPhysicsContact::create();
@@ -169,6 +177,9 @@ void Game::onEnter()
 
 	//call function to calculate center
 	this->schedule(schedule_selector(Game::calCenter), 1.0 / 60.0);
+
+	//call function that changes view position using schedule
+	this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
 }
 
 void Game::onExit()
@@ -179,8 +190,11 @@ void Game::onExit()
     unschedule(schedule_selector(Game::tooLargeScaleControl));
 	unschedule(schedule_selector(Game::createParticlesByTime));
 	unschedule(schedule_selector(Game::calCenter));
+	unschedule(schedule_selector(Game::spriteFollowedView));
 	
-	//dismiss dispatchers?
+	//dismiss dispatchers
+	//in PauseScene.cpp init()
+	//because Pause::init() is called earlier than Game::onExit()
 }
 
 
@@ -191,10 +205,11 @@ bool if_is_moving = false;
 
 bool Game::onTouchBegan(Touch * touch, Event * event)
 {
-	Vec2 locationInNode = touch->getLocation() - viewOffset - playerCenter;
+	Vec2 locationInNode = touch->getLocation() - viewOffset * viewScale - playerCenter;
 	//log("touch %f %f", touch->getLocation().x, touch->getLocation().y);
 	//log("player %f %f", playerCenter.x, playerCenter.y);
-	//log("offset %f %f", locationInNode.x, locationInNode.y);
+	//log("view offset %f %f", viewOffset.x, viewOffset.y);
+	//log("sum offset %f %f", locationInNode.x, locationInNode.y);
 
 	//8 directions instead of any directions to move smoothly
 	float tan = abs(locationInNode.y / locationInNode.x);
@@ -231,7 +246,7 @@ bool Game::onTouchBegan(Touch * touch, Event * event)
 	}
 
 	//call function that changes view position using schedule
-	this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
+	//this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
 	
 	if_is_moving = true;
 
@@ -244,7 +259,7 @@ void Game::onTouchMoved(Touch * touch, Event * event)
 	//if the interval is too short, funtion calling too frequent, the sprite cannot move or change directions smoothly
 	if (clock() - moveStartTime > 100)
 	{
-		Vec2 locationInNode = touch->getLocation() - viewOffset - playerCenter;
+		Vec2 locationInNode = touch->getLocation() - viewOffset * viewScale - playerCenter;
 		//log("touch location: (%f,%f)", touch->getLocation().x, touch->getLocation().y);
 		//log("player center: (%f,%f)", playerCenter.x, playerCenter.y);
 		//log("offset: (%f,%f)", locationInNode.x, locationInNode.y);
@@ -354,7 +369,7 @@ void Game::onTouchEnded(Touch * touch, Event * event)
 
 		target->runAction(EaseOut::create(move, 3));*/
 
-		unschedule(schedule_selector(Game::spriteFollowedView));
+		//unschedule(schedule_selector(Game::spriteFollowedView));
 
 		if_is_moving = false;
 	}
@@ -376,7 +391,7 @@ void Game::mouseUp(Event* event)
 				vecPlayerSprite[i]->setScale(0.6 * vecPlayerSprite[i]->getScale());//0.707? 
 
 				auto player = Sprite::create("game/player50x50.png");
-				player->setColor(Color3B(0, 0, 0));
+				//player->setColor(Color3B(0, 0, 0));
 				player->setTag(PLAYER_SPRITE_TAG);
 
 				auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
@@ -506,10 +521,12 @@ void Game::viewFollowingPlayerScale(float dt)
 		if (vecPlayerSprite[i]->getScale() > playerScale)
 			playerScale = vecPlayerSprite[i]->getScale();
 	}
-	playerScale *= pow((float)playerSpriteNum, 3);//math function needs to be changed
+	log("player scale %f", playerScale);
 
+	//math function needs to be changed
+	Game::viewScale = pow(playerScale, 1.0 / 5.0) * pow(0.95 + playerSpriteNum * 0.05, 1.0 / 4.0);
+	//log("view scale %f", viewScale);
 
-	Game::viewScale = pow(0.95 + playerSpriteNum * 0.05, 1.0 / 4.0);
 	this->setScale(1.0 / viewScale);
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 
@@ -536,8 +553,9 @@ void Game::calCenter(float dt)
 //now only suitable for one sprite
 void Game::refreshPlayerScale(int plusOrMinus)
 {
-	//auto player = (Sprite*)getChildByTag(CONTACT_TAG);
-	auto player = this->getChildByTag(CONTACT_TAG);
+	auto player = (Sprite*)getChildByTag(CONTACT_TAG);
+	//auto player = this->getChildByTag(CONTACT_TAG);
+	//log("%p", player);
 	float playerScale = player->getScale();
 
 	if (playerScale < 4.18 || plusOrMinus < 0)
@@ -637,6 +655,7 @@ bool Game::contactBegin(PhysicsContact& contact)
 {
 	auto player = (Sprite*)contact.getShapeA()->getBody()->getNode();
 	auto littleParticle = (Sprite*)contact.getShapeB()->getBody()->getNode();
+	//log("%p, %p", player, littleParticle);
 
 	if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
 	{
