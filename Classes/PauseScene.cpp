@@ -30,8 +30,17 @@ bool PauseScene::init()
 	//sound toggle button
 	auto soundOnMenuItem = MenuItemImage::create("secondMenu/soundOn.png", "secondMenu/soundOn.png");
 	auto soundOffMenuItem = MenuItemImage::create("secondMenu/soundOff.png", "secondMenu/soundOff.png");
+	
+	// continue button
+	auto ContinueMenuItem = MenuItemImage::create("secondMenu/continue.png", "secondMenu/continueC.png",
+		CC_CALLBACK_1(PauseScene::menuContinueCallback, this));
 
-	//judge if the bgm is playing and creat the matched scene
+	// exit button
+	auto ExitMenuItem = MenuItemImage::create("secondMenu/exit.png", "secondMenu/exitC.png",
+		CC_CALLBACK_1(PauseScene::menuOverGameCallback, this));
+
+
+	// judge if the bgm is playing and creat the matched scene
 	if (SimpleAudioEngine::getInstance()->isBackgroundMusicPlaying() == true)
 	{
 		auto soundToggleMenuItem = MenuItemToggle::createWithCallback(CC_CALLBACK_1(PauseScene::menuMusicCallback, this),
@@ -50,23 +59,16 @@ bool PauseScene::init()
 		menu1->setPosition(Vec2::ZERO);
 		this->addChild(menu1, 0);
 	}
+	
+	
+	ContinueMenuItem->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
+	
+	ExitMenuItem->setPosition(Vec2(visibleSize.width / 2, (visibleSize.height / 2) - 200));
 
-
-	MenuItemFont::setFontName("Times New Roman");
-	MenuItemFont::setFontSize(86);
-
-	//back to the game
-	auto ContinueItem = MenuItemFont::create("Continue", CC_CALLBACK_1(PauseScene::menuContinueCallback, this));
-	ContinueItem->setPosition(Vec2(visibleSize.width / 2, visibleSize.height / 2));
-
-	//over the game
-	auto EndItem = MenuItemFont::create("Over", CC_CALLBACK_1(PauseScene::menuOverGameCallback, this));
-	EndItem->setPosition(Vec2(visibleSize.width / 2, (visibleSize.height / 2) - 200));
-
-	auto mn = Menu::create(ContinueItem, EndItem, NULL);
+	auto mn = Menu::create(ContinueMenuItem, ExitMenuItem, NULL);
 	mn->setPosition(Vec2::ZERO);
-	this->addChild(mn);
-
+	this->addChild(mn, 0);
+	
 	return true;
 }
 
