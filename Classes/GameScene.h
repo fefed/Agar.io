@@ -41,6 +41,9 @@ public:
 	void calCenter(float dt);
 	Vec2 playerCenter;
 
+	//used for initialize the view position
+	//bool initViewPosition = true;
+
 
 	//refresh playerScale
 	void refreshPlayerScale(int plusOrMinus);

@@ -412,7 +412,7 @@ void Game::mouseUp(Event* event)
 				{
 					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x,
 						vecPlayerSprite[i]->getPosition().y 
-						+ 50 * vecPlayerSprite[i]->getScale() * previous_if_y_is_minus));//50 maybe need to be changed
+						+ 100 * vecPlayerSprite[i]->getScale() * previous_if_y_is_minus));//50 maybe need to be changed
 					if (if_is_moving)
 					{
 						//vecPlayerSprite[i]->stopAllActions();
@@ -422,6 +422,10 @@ void Game::mouseUp(Event* event)
 						auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
 							Vec2(0, SPEED * previous_if_y_is_minus));
 						move1->setTag(MOVE_ACTION_1);
+						/*auto moveShort1 = MoveBy::create(1 * vecPlayerSprite[i]->getScale(),
+							Vec2(0, SPEED * previous_if_y_is_minus / 1000));
+						auto moveFast1 = EaseOut::create(moveShort1, 3);
+						auto seq1 = Sequence::create(move1, moveFast1, NULL);*/
 
 						vecPlayerSprite[i]->stopAllActions();
 						vecPlayerSprite[i]->runAction(move1);
@@ -433,9 +437,9 @@ void Game::mouseUp(Event* event)
 				else if (previous_kind_of_move_action == 2)
 				{
 					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x 
-						+ 50 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus,
+						+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus,
 						vecPlayerSprite[i]->getPosition().y 
-						+ 50 * vecPlayerSprite[i]->getScale()* previous_if_y_is_minus));
+						+ 100 * vecPlayerSprite[i]->getScale()* previous_if_y_is_minus));
 					if (if_is_moving)
 					{
 						//vecPlayerSprite[i]->stopAllActions();
@@ -454,7 +458,7 @@ void Game::mouseUp(Event* event)
 				else
 				{
 					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x 
-						+ 50 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus,
+						+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus,
 						vecPlayerSprite[i]->getPosition().y));
 					if (if_is_moving)
 					{
@@ -500,12 +504,52 @@ void Game::spriteFollowedView(float dt)
 	x = MIN(x, (MAP_WIDTH_TIMES / 2 - 0.5 * viewScale) * visibleSize.width);
 	y = MIN(y, (MAP_HEIGHT_TIMES / 2 - 0.5 * viewScale) * visibleSize.height);
 
-	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);//linked to player born location, not completed
+	Vec2 pointA = Vec2(visibleSize.width / 2, visibleSize.height / 2);//linked to player born location? not completed
 	Vec2 pointB = Vec2(x, y);
 	//log("viewScale: %f", viewScale);
 	//log("target position (%f, %f)", pointB.x, pointB.y);
 
 	viewOffset = pointA - pointB;
+
+	//try to make the move of view position slowly
+	//not succeed
+	/*if (initViewPosition)
+	{
+		viewOffset = pointA - pointB;
+		initViewPosition = false;
+	}
+	else
+	{
+		if ((viewOffset - pointA + pointB).x > 25.0)
+		{
+			viewOffset.x -= 5.0;
+			log("triggered");
+		}
+		else if ((viewOffset - pointA + pointB).x < -25.0)
+		{
+			viewOffset.x += 5.0;
+			log("triggered");
+		}
+		else
+		{
+			viewOffset.x = (pointA - pointB).x;
+		}
+
+		if ((viewOffset - pointA + pointB).y > 25.0)
+		{
+			viewOffset.y -= 5.0;
+			log("triggered");
+		}
+		else if ((viewOffset - pointA + pointB).y < -25.0)
+		{
+			viewOffset.y += 5.0;
+			log("triggered");
+		}
+		else
+		{
+			viewOffset.y = (pointA - pointB).y;
+		}
+	}*/
 
 	//log("offset (%f, %f)", offset.x, offset.y);
 	this->setPosition(viewOffset);
@@ -521,10 +565,23 @@ void Game::viewFollowingPlayerScale(float dt)
 		if (vecPlayerSprite[i]->getScale() > playerScale)
 			playerScale = vecPlayerSprite[i]->getScale();
 	}
-	log("player scale %f", playerScale);
+	//log("player scale %f", playerScale);
 
 	//math function needs to be changed
 	Game::viewScale = pow(playerScale, 1.0 / 5.0) * pow(0.95 + playerSpriteNum * 0.05, 1.0 / 4.0);
+
+	//change the view slowly
+	if (viewScale - 1.0 / this->getScale() > 0.02)
+	{
+		viewScale = 1.0 / this->getScale() + 0.004;
+		log("slow view scale triggered");
+	}
+	else if (viewScale - 1.0 / this->getScale() < -0.02)
+	{
+		viewScale = 1.0 / this->getScale() - 0.004;
+		log("slow view scale triggered");
+	}
+
 	//log("view scale %f", viewScale);
 
 	this->setScale(1.0 / viewScale);
@@ -661,10 +718,17 @@ bool Game::contactBegin(PhysicsContact& contact)
 	{
 		player->setTag(CONTACT_TAG);
 		refreshPlayerScale(1);
-		//player->setTag(PLAYER_SPRITE_TAG);
+		player->setTag(PLAYER_SPRITE_TAG);
 		this->removeChild(littleParticle);//little particle swallowed
 		//log("player scale: %f", playerScale);
 	}
+
+	//here littleParticle is also player's ball
+	/*if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == PLAYER_SPRITE_TAG)
+	{
+		player->setScale(sqrt(player->getScale() * player->getScale() + littleParticle->getScale() * littleParticle->getScale()));
+		this->removeChild(littleParticle);
+	}*/
 
 	//log("onContactBegin");
 	return true;
