@@ -11,7 +11,8 @@ Try to do some other optimization to move and change scale of balls and view etc
   but not succeed  
   
 ## And things to be done:  
-**MAYBE WE ARE GOING TO USE GRPC**  
+**MAYBE WE ARE GOING TO USE ASIO BOOST?**  
+**MAYBE WE ARE GOING TO USE GRPC?**  
 network  
 room scene for online play  
 choose play mode (free or team etc.)  
