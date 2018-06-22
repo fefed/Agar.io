@@ -2,7 +2,7 @@
 #include "SimpleAudioEngine.h"
 #include "OptionsScene.h"
 #include "HelpScene.h"
-#include "GameScene.h"
+#include "ModeScene.h"
 
 USING_NS_CC;
 using namespace CocosDenshion;
@@ -118,10 +118,9 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 
 void HelloWorld::menuItemStartCallback(Ref* pSender)
 {
-	auto sc = Game::createScene();
+	auto sc = Mode::createScene();
 	auto reScene = TransitionCrossFade::create(0.5f, sc);
-	//Director::getInstance()->pushScene(reScene);
-	Director::getInstance()->replaceScene(reScene);
+	Director::getInstance()->pushScene(reScene);
 }
 
 void HelloWorld::menuItemHelpCallback(Ref* pSender)

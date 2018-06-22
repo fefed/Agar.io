@@ -32,7 +32,7 @@ bool PauseScene::init()
 	auto soundOffMenuItem = MenuItemImage::create("secondMenu/soundOff.png", "secondMenu/soundOff.png");
 	
 	// continue button
-	auto ContinueMenuItem = MenuItemImage::create("secondMenu/continue.png", "secondMenu/continueC.png",
+	auto ContinueMenuItem = MenuItemImage::create("secondMenu/continue.png", "secondMenu/continueChosen.png",
 		CC_CALLBACK_1(PauseScene::menuContinueCallback, this));
 
 	// exit button
