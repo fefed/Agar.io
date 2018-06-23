@@ -18,6 +18,8 @@ public:
 
 	void menuItemJoinCallback(cocos2d::Ref* pSender);
 
+	void update(float dt);
+
 	// implement the "static create()" method manually
 	CREATE_FUNC(Room);
 };

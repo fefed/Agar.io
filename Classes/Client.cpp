@@ -140,7 +140,7 @@ int Client::client(void)
 
 	if (client_mode == 2)
 	{
-		system("ping -c 1 255.255.255.255");
+		//system("ping -c 1 255.255.255.255");
 		//        std::cout << "ping done" << std::endl;
 		system("arp -a > arp.txt");
 		//        std::cout << "arp done" << std::endl;
@@ -244,7 +244,7 @@ int Client::client(void)
 		boost::asio::io_service io_service;
 
 		tcp::resolver resolver(io_service);
-		tcp::resolver::query query(ipList.at(i), "11332");
+		tcp::resolver::query query(ipList.at(i), "2001");
 		ipOut = ipList.at(i);
 		tcp::resolver::iterator iterator = resolver.resolve(query);
 
@@ -276,13 +276,15 @@ int Client::client(void)
 
 		if (client_mode == 1)
 		{
-			ip = "115.159.90.65";
+			ip = "132.232.19.222";
+			//ip = "127.0.0.1";
+			//ip = "172.27.0.7";
 		}
 		else {
 			ip = ipList.at(serverIndex);
 		}
 		_search_finished = true;
-		tcp::resolver::query query(ip, "11332");
+		tcp::resolver::query query(ip, "2001");
 		tcp::resolver::iterator iterator = resolver.resolve(query);
 
 		chat_client c(io_service, iterator);

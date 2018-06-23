@@ -4,10 +4,9 @@
 *to add and test your code*  
   
 This commit mainly:  
-preparations for network  
-client and server source code introduced  
-  but now applied yet  
-  using boost.asio  
+connection establishment enabled  
+remote server established  
+new project Remote Server created  
   
   
 ## And things to be done:  
@@ -27,6 +26,12 @@ refer to "This commit mainly"
   
   
 *In older commits:*  
+*3*  
+*preparations for network*  
+*client and server source code introduced*  
+*  but now applied yet*  
+*  using boost.asio*  
+  
 *2*  
 *The view scale changes slowly when divide*  
 *Try to make player's ball enabled to swallow this player's own ball*  
