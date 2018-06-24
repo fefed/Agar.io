@@ -54,6 +54,8 @@ public:
 		participants_.insert(participant);
 		std::for_each(recent_msgs_.begin(), recent_msgs_.end(),
 			boost::bind(&chat_participant::deliver, participant, _1));
+		std::cout << "new client\n";
+		system("netstat -ano|findstr 2001");
 	}
 
 	/**
@@ -65,6 +67,7 @@ public:
 	void leave(chat_participant_ptr participant)
 	{
 		participants_.erase(participant);
+		std::cout << "client exit\n";
 	}
 
 	/**
@@ -81,6 +84,9 @@ public:
 
 		std::for_each(participants_.begin(), participants_.end(),
 			boost::bind(&chat_participant::deliver, _1, boost::ref(msg)));
+		std::cout << "message dispatched:\n";
+		std::cout << msg.data();
+		std::cout << std::endl;
 	}
 
 private:
@@ -344,7 +350,7 @@ public:
 	}
 
 	/**
-	* @brief    开启一个新线程，使server驻留后台运行
+	* @brief    开启一个线程
 	*/
 	void runServer(void)
 	{
@@ -353,8 +359,8 @@ public:
 	}
 
 	/**
-	* @brief    在分离线程中运行server\n
-	*           只要io_service不被关闭，该线程就会在后台持续运行，直到主线程结束后被清理
+	* @brief    运行server\n
+	*           
 	*/
 	int server(void)
 	{

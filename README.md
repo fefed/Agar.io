@@ -4,9 +4,7 @@
 *to add and test your code*  
   
 This commit mainly:  
-connection establishment enabled  
-remote server established  
-new project Remote Server created  
+still progress on network  
   
   
 ## And things to be done:  
@@ -26,6 +24,11 @@ refer to "This commit mainly"
   
   
 *In older commits:*  
+*4*  
+*connection establishment enabled*  
+*remote server established*  
+*new project Remote Server created*  
+  
 *3*  
 *preparations for network*  
 *client and server source code introduced*  

@@ -10,14 +10,17 @@ public:
 	virtual bool init();
 
 	//menu item callback
-	void menuBackCallback(cocos2d::Ref* pSender);
+	void menuCloseCallback(cocos2d::Ref* pSender);
 
-	void menuItemReadyCallback(cocos2d::Ref* pSender);
+	//void menuItemReadyCallback(cocos2d::Ref* pSender);
 
 	void menuItemCreateCallback(cocos2d::Ref* pSender);
 
-	void menuItemJoinCallback(cocos2d::Ref* pSender);
+	//void menuItemJoinCallback(cocos2d::Ref* pSender);
 
+	void menuItemStartCallback(cocos2d::Ref* pSender);
+
+	void search(float dt);
 	void update(float dt);
 
 	// implement the "static create()" method manually

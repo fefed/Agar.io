@@ -86,6 +86,8 @@
 #define DEAD_MESSAGE    "j"
 /** @} */
 
+#define QUERY_FOR_CREATE_ROOM "k"
+#define ANSWER_FOR_CREATE_ROOM "l"
 
 using boost::asio::ip::tcp;
 
@@ -265,4 +267,9 @@ public:
 	* @return   是否正常结束
 	*/
 	int client(void);
+
+	void close()
+	{
+		_clientInstance->close();
+	}
 };
