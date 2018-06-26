@@ -30,10 +30,10 @@
 /** @} */
 
 /**
-* @name 开启client的filter mode, 并传输过滤关键词
+* @name 回应START_GAME
 * @{
 */
-#define KEY_ORDER       "c"
+#define START_FAILED       "c"
 /** @} */
 
 /**
@@ -44,10 +44,10 @@
 /** @} */
 
 /**
-* @name 向房间内所有玩家传输新加入房间的玩家信息
+* @name 向房间内所有玩家传输退出房间的玩家信息
 * @{
 */
-#define JOIN_ROOM       "e"
+#define EXIT_ROOM       "e"
 /** @} */
 
 /**
@@ -86,8 +86,8 @@
 #define DEAD_MESSAGE    "j"
 /** @} */
 
-#define QUERY_FOR_CREATE_ROOM "k"
-#define ANSWER_FOR_CREATE_ROOM "l"
+#define QUERY_FOR_START "k"
+#define ANSWER_FOR_START "l"
 
 using boost::asio::ip::tcp;
 

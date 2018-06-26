@@ -8,6 +8,7 @@ public:
 	static cocos2d::Scene* createScene();
 
 	virtual bool init();
+	virtual void onExit();
 
 	//menu item callback
 	void menuCloseCallback(cocos2d::Ref* pSender);
@@ -22,6 +23,7 @@ public:
 
 	void search(float dt);
 	void update(float dt);
+	void startCheck(float dt);
 
 	// implement the "static create()" method manually
 	CREATE_FUNC(Room);
