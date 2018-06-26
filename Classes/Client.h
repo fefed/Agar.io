@@ -30,7 +30,7 @@
 /** @} */
 
 /**
-* @name 回应START_GAME
+* @name 多个房间被创建
 * @{
 */
 #define START_FAILED       "c"
@@ -73,10 +73,10 @@
 /** @} */
 
 /**
-* @name 向房间内其他玩家传输房主所选择的地图索引
+* @name 出生位置
 * @{
 */
-#define MAP_SELECT      "i"
+#define INIT_POS      "i"
 /** @} */
 
 /**
@@ -86,8 +86,17 @@
 #define DEAD_MESSAGE    "j"
 /** @} */
 
+//询问开始
 #define QUERY_FOR_START "k"
+
+//回应QUERY_FOR_START
 #define ANSWER_FOR_START "l"
+
+//动作种类
+#define MOVE_ACTION "m"
+
+//分裂
+#define DIVIDE_ACTION "n"
 
 using boost::asio::ip::tcp;
 
@@ -273,3 +282,7 @@ public:
 		_clientInstance->close();
 	}
 };
+
+extern Client* this_client;
+extern int player_num;
+extern int player_count;

@@ -10,7 +10,8 @@ std::string                 currentIp;      ///当前连接的ip地址字符串
 std::vector<std::string>    ipList;         ///所有连接到该网段的设备的ip地址表
 std::vector<std::string>    serverIpList;   ///能够连接上的, 存在server的ip地址表
 
-static Client*              this_client = nullptr;      ///指向client对象的指针
+Client*              this_client = nullptr;      ///指向client对象的指针
+int player_num = 0;
 
 														/**
 														* @name MAC平台下的标识码

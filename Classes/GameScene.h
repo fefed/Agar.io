@@ -60,7 +60,11 @@ public:
 	bool contactBegin(PhysicsContact& contact);
 	
 
-	vector<Sprite*> vecPlayerSprite;	
+	void update(float dt);
+
+
+	vector<Sprite*> vecPlayerSprite;
+	vector<vector<Sprite*> > vecMultiPlayerSprite;
 	
 	// implement the "static create()" method manually
 	CREATE_FUNC(Game);

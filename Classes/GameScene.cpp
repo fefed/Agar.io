@@ -3,6 +3,7 @@
 #include "PauseScene.h"
 #include <time.h>
 #include <stdlib.h>
+#include "Client.h"
 
 #define PLAYER_SPRITE_TAG 0
 #define MOVE_ACTION_1 1
@@ -17,6 +18,11 @@
 #define CONTACT_TAG 6
 
 USING_NS_CC;
+
+Client* thisClient = this_client;
+const int player_code = player_num;
+const string player_code_string = to_string(player_code);
+const int player_sum = player_count;
 
 Scene* Game::createScene()
 {
@@ -180,6 +186,8 @@ void Game::onEnter()
 
 	//call function that changes view position using schedule
 	this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
+
+	this->schedule(schedule_selector(Game::update), 1.0 / 60.0);
 }
 
 void Game::onExit()
@@ -732,4 +740,10 @@ bool Game::contactBegin(PhysicsContact& contact)
 
 	//log("onContactBegin");
 	return true;
+}
+
+
+void Game::update(float dt)
+{
+
 }
