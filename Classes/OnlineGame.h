@@ -62,8 +62,9 @@ public:
 
 
 	void update(float dt);
-
+	void sendRefreshInfo(float dt);
 	void sendInitPos(float dt);
+	void loadingTime(float dt);
 
 	string formatPos(int pos)
 	{
@@ -83,7 +84,7 @@ public:
 		else
 			strPos += ("000" + to_string(pos));
 
-		strPos += "||";
+		strPos += "|||||||||";
 		return strPos;
 	}
 
@@ -114,6 +115,58 @@ public:
 				msg += "3";
 			else
 				msg += "4";
+		}
+	}
+
+	void refreshFmtPos(string& msg, float x, float y)
+	{
+		float absX = abs(x);
+		float absY = abs(y);
+		string xPosStr = to_string(absX);
+		string yPosStr = to_string(absY);
+
+		if (absX >= 1000)
+			msg += to_string(xPosStr[0] - '0') + to_string(xPosStr[1] - '0') + to_string(xPosStr[2] - '0')
+			+ to_string(xPosStr[3] - '0') + to_string(xPosStr[5] - '0') + to_string(xPosStr[6] - '0');
+		else if(absX >= 100)
+			msg += "0" + to_string(xPosStr[0] - '0') + to_string(xPosStr[1] - '0') + to_string(xPosStr[2] - '0')
+			+ to_string(xPosStr[4] - '0') + to_string(xPosStr[5] - '0');
+		else if(absX >= 10)
+			msg += "00" + to_string(xPosStr[0] - '0') + to_string(xPosStr[1] - '0')
+			+ to_string(xPosStr[3] - '0') + to_string(xPosStr[4] - '0');
+		else
+			msg += "000" + to_string(xPosStr[0] - '0') + to_string(xPosStr[2] - '0')
+			+ to_string(xPosStr[3] - '0');
+
+
+		if (absY >= 1000)
+			msg += to_string(yPosStr[0] - '0') + to_string(yPosStr[1] - '0') + to_string(yPosStr[2] - '0')
+			+ to_string(yPosStr[3] - '0') + to_string(yPosStr[5] - '0') + to_string(yPosStr[6] - '0');
+		else if (absY >= 100)
+			msg += "0" + to_string(yPosStr[0] - '0') + to_string(yPosStr[1] - '0') + to_string(yPosStr[2] - '0')
+			+ to_string(yPosStr[4] - '0') + to_string(yPosStr[5] - '0');
+		else if (absY >= 10)
+			msg += "00" + to_string(yPosStr[0] - '0') + to_string(yPosStr[1] - '0')
+			+ to_string(yPosStr[3] - '0') + to_string(yPosStr[4] - '0');
+		else
+			msg += "000" + to_string(yPosStr[0] - '0') + to_string(yPosStr[2] - '0')
+			+ to_string(yPosStr[3] - '0');
+
+
+		if (x > 0)
+		{
+			if (y > 0)
+				msg += "1|";
+			else
+				msg += "2|";
+		}
+
+		else
+		{
+			if (y > 0)
+				msg += "3|";
+			else
+				msg += "4|";
 		}
 	}
 

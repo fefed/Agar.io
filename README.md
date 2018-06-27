@@ -2,7 +2,7 @@
 *you can create a new branch*  
 *based on this commit*  
 *to add and test your code*  
-
+  
 ##This commit mainly  
 still progress on network  
 
@@ -14,16 +14,17 @@ still progress on network
   
 ## And things to be done:  
 **WE ARE USING ASIO BOOST**  
-network  
-(room scene for online play)  
-other player's scale  
-choose play mode (free or team etc.)  
-control by keyboard  
-other players' sprite  
-a loading scene  
-a score lable  
-enable balls to eat the player's own ball  
-etc.  
+
+* network  
+* *(room scene for online play)*  
+* other player's scale  
+* choose play mode (free or team etc.)  
+* control by keyboard  
+* *(other players' sprite)*  
+* a loading scene  
+* a score lable  
+* enable balls to eat the player's own ball  
+* etc.  
   
 ---  
 *In older commits:*  
@@ -65,3 +66,5 @@ etc.
 *The first ball remains pink*  
     *but the others are black*  
 *BallClass.h has been deleted*  
+  
+* *etc.*  

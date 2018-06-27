@@ -83,12 +83,12 @@ void Room::onExit()
 		{
 			if (room_owner)
 			{
-				client->sendMessage(EXIT_ROOM, "owner||||");
+				client->sendMessage(EXIT_ROOM, "owner|||||||||||");
 				//log("1");
 			}
 			else
 			{
-				client->sendMessage(EXIT_ROOM, "exit|||||");
+				client->sendMessage(EXIT_ROOM, "exit||||||||||||");
 				//log("2");
 			}
 			Sleep(100);
@@ -109,12 +109,12 @@ void Room::menuCloseCallback(cocos2d::Ref* pSender)
 	{
 		if (room_owner)
 		{
-			client->sendMessage(EXIT_ROOM, "owner||||");
+			client->sendMessage(EXIT_ROOM, "owner|||||||||||");
 			//log("3");
 		}
 		else
 		{
-			client->sendMessage(EXIT_ROOM, "exit|||||");
+			client->sendMessage(EXIT_ROOM, "exit||||||||||||");
 			//log("4");
 		}
 
@@ -145,7 +145,7 @@ void Room::menuItemStartCallback(Ref* pSender)
 		loading->setPosition(Director::getInstance()->convertToGL(Vec2(250, 300)));
 		this->addChild(loading, 1);
 
-		client->sendMessage(QUERY_FOR_START, "ifstart?|");
+		client->sendMessage(QUERY_FOR_START, "ifstart?||||||||");
 		this->schedule(schedule_selector(Room::startCheck), 20.0 / 60.0);
 
 		/*Director::getInstance()->popScene();
@@ -191,11 +191,11 @@ void Room::startCheck(float dt)
 			log("player count %d", true_player_count);
 			if (true_player_count > player_count)
 			{
-				client->sendMessage(START_FAILED, "fail|||||");
+				client->sendMessage(START_FAILED, "fail||||||||||||");
 			}
 			else
 			{
-				client->sendMessage(START_GAME, "start||||");
+				client->sendMessage(START_GAME, "start|||||||||||");
 			}
 			unschedule(schedule_selector(Room::startCheck));
 		}
@@ -257,7 +257,7 @@ void Room::search(float dt)
 	if ((!if_found) && (try_time < 5) && (client->_search_finished))
 	{
 		try_time++;
-		client->sendMessage(QUERY_FOR_ROOM, "ifroom?||");
+		client->sendMessage(QUERY_FOR_ROOM, "ifroom?|||||||||");
 
 		std::string temp = client->executeOrder();
 		//log("%c", temp[0]);
@@ -266,7 +266,7 @@ void Room::search(float dt)
 			if (temp[0] == ANSWER_FOR_ROOM[0])
 			{
 				if_found = true;
-				if (temp == "bfull||||") 
+				if (temp == "bfull|||||||||||") 
 				{
 					auto roomFullSprite = Sprite::create("room/roomFull.png");
 					roomFullSprite->setPosition(Director::getInstance()->convertToGL(Vec2(250, 150)));
@@ -332,12 +332,12 @@ void Room::update(float dt)
 					buffer[0] = player_count + 1 + '0';
 					buffer[1] = '\0';
 					std::string msg(buffer);
-					msg += "||||||||";
+					msg += "|||||||||||||||";
 					client->sendMessage(ANSWER_FOR_ROOM, msg);
 				}
 				else
 				{
-					client->sendMessage(ANSWER_FOR_ROOM, "full|||||");
+					client->sendMessage(ANSWER_FOR_ROOM, "full||||||||||||");
 				}
 			}
 
@@ -368,7 +368,7 @@ void Room::update(float dt)
 				buffer[0] = player_count + '0';
 				buffer[1] = '\0';
 				std::string msg(buffer);
-				msg += "||||||||";
+				msg += "|||||||||||||||";
 				client->sendMessage(ANSWER_FOR_PLAYERS_IN_ROOM, msg);
 
 				auto playerSign = Sprite::create(playerPic[player_count - 1]);
@@ -392,7 +392,7 @@ void Room::update(float dt)
 
 			if (temp[0] == QUERY_FOR_START[0])
 			{
-				client->sendMessage(ANSWER_FOR_START, "ready||||");
+				client->sendMessage(ANSWER_FOR_START, "ready|||||||||||");
 			}
 
 			if (temp[0] == ANSWER_FOR_START[0])
@@ -413,8 +413,9 @@ void Room::update(float dt)
 				Director::getInstance()->popScene();
 
 				auto sc = GameOl::createScene(client);
-				auto reScene = TransitionCrossFade::create(0.5f, sc);
-				Director::getInstance()->replaceScene(reScene);
+				//auto reScene = TransitionCrossFade::create(0.5f, sc);
+				//Director::getInstance()->replaceScene(reScene);
+				Director::getInstance()->replaceScene(sc);
 			}
 		}
 	}
@@ -424,7 +425,7 @@ void Room::update(float dt)
 		if (init_in_room)
 		{
 			init_in_room = false;
-			client->sendMessage(QUERY_FOR_PLAYERS_IN_ROOM, "whoin?|||");
+			client->sendMessage(QUERY_FOR_PLAYERS_IN_ROOM, "whoin?||||||||||");
 		}
 
 		std::string temp = client->executeOrder();
@@ -446,7 +447,7 @@ void Room::update(float dt)
 
 			if (temp[0] == EXIT_ROOM[0])
 			{
-				if (temp == "eowner||||")
+				if (temp == "eowner|||||||||||")
 				{
 					auto ownerDisconnectedSprite = Sprite::create("room/ownerDisconnected.png");
 					ownerDisconnectedSprite->setPosition(Director::getInstance()->convertToGL(Vec2(250, 150)));
@@ -466,7 +467,7 @@ void Room::update(float dt)
 				loading->setPosition(Director::getInstance()->convertToGL(Vec2(250, 300)));
 				this->addChild(loading, 1);
 
-				client->sendMessage(ANSWER_FOR_START, "ready||||");
+				client->sendMessage(ANSWER_FOR_START, "ready|||||||||||");
 			}
 
 			if (temp[0] == START_FAILED[0])
@@ -482,8 +483,9 @@ void Room::update(float dt)
 				Director::getInstance()->popScene();
 
 				auto sc = GameOl::createScene(client);
-				auto reScene = TransitionCrossFade::create(0.5f, sc);
-				Director::getInstance()->replaceScene(reScene);
+				//auto reScene = TransitionCrossFade::create(0.5f, sc);
+				//Director::getInstance()->replaceScene(reScene);
+				Director::getInstance()->replaceScene(sc);
 			}
 		}
 	}

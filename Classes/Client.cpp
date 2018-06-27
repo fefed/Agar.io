@@ -268,7 +268,6 @@ int Client::client(void)
 
 	try
 	{
-
 		boost::asio::io_service io_service;
 
 		tcp::resolver resolver(io_service);

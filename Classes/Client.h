@@ -101,7 +101,7 @@
 //+x	1		2
 //-x	3		4
 //
-//example: m2134|||||
+//example: m2134|||||||||||
 //m for MOVE_ACTION
 //2 for player2
 //1 for touch began
@@ -111,6 +111,27 @@
 
 //分裂
 #define DIVIDE_ACTION "n"
+
+//体积
+//example: o12345|||||||||||
+//o for PLAYER_SCALE
+//1 for player1
+//2 for player1's ball 2 (start from 0)
+//345 for scale 3.45
+#define PLAYER_SCALE "o"
+
+//位置
+//example: p219876541234561|
+//p for PLAYER_POSITION
+//2 for player2
+//1 for player2's ball 1 (start from 0)
+//987654 for x 9876.54
+//123456 for y 1234.56
+//1 for x > 0, y > 0
+//		+y		-y
+//+x	1		2
+//-x	3		4
+#define PLAYER_POSITION "p"
 
 using boost::asio::ip::tcp;
 

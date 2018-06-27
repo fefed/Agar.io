@@ -15,6 +15,7 @@
 #define LITTLE_PARTICLE_TAG 4
 #define EDGE_NODE_TAG 5
 #define CONTACT_TAG 6
+#define LOADING_TAG 7
 
 USING_NS_CC;
 
@@ -27,6 +28,7 @@ static Client * this_client;
 int player_code;
 string player_code_string;
 int player_sum;
+bool if_loading_finished = false;
 
 
 Scene* GameOl::createScene(Client* client)
@@ -38,23 +40,56 @@ Scene* GameOl::createScene(Client* client)
 
 bool GameOl::init()
 {
-	player_code = player_num;
-	player_code_string = to_string(player_code);
-	player_sum = player_count;
-
 	//initialize using physics engine
 	if (!Scene::initWithPhysics())
 	{
 		return false;
 	}
 
+	player_code = player_num;
+	player_code_string = to_string(player_code);
+	player_sum = player_count;
+
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+	Vec2 origin = Director::getInstance()->getVisibleOrigin();
+
+
 	//Game::getPhysicsWorld()->setDebugDrawMask(PhysicsWorld::DEBUGDRAW_ALL);
 
 	//Game::getPhysicsWorld()->setAutoStep(false);
 	//Game::getPhysicsWorld()->step(1.0 / 180.0);
 
-	Size visibleSize = Director::getInstance()->getVisibleSize();
-	Vec2 origin = Director::getInstance()->getVisibleOrigin();
+
+	//loading
+	auto loading = Sprite::create("game/loading.png");
+	loading->setTag(LOADING_TAG);
+	this->addChild(loading, 10);
+
+
+	//create player sprite using polygen sprite
+	//auto playerPInfo = AutoPolygon::generatePolygon("game/player50x50.png");
+	//auto player = Sprite::create(playerPInfo);
+	auto player = Sprite::create(playerPicOl[player_code - 1]);
+	player->setTag(PLAYER_SPRITE_TAG);
+
+	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+	playerBody->setGravityEnable(false);
+	playerBody->setContactTestBitmask(0x03);//0011
+	playerBody->setCollisionBitmask(0x01);
+	player->setPhysicsBody(playerBody);
+
+	//player initial position
+	srand(time(NULL) * player_code);
+	player->setPosition(Vec2(rand() % (int)((MAP_WIDTH_TIMES - 1) * visibleSize.width) - (MAP_WIDTH_TIMES - 1) / 2.0 * visibleSize.width,
+		rand() % (int)((MAP_HEIGHT_TIMES - 1) * visibleSize.height) - (MAP_HEIGHT_TIMES - 1) / 2.0 * visibleSize.height));
+	log("%f, %f", player->getPosition().x, player->getPosition().y);
+	this->addChild(player, 2);
+
+	vecPlayerSprite.push_back(player);
+	aryMultiPlayerSprite[player_code - 1] = vecPlayerSprite;
+
+	//loading pic position
+	loading->setPosition(player->getPosition().x, player->getPosition().y);
 
 
 	//world edge collision
@@ -89,28 +124,6 @@ bool GameOl::init()
 	this->addChild(mn, 0);
 	*/
 
-	//create player sprite using polygen sprite
-	//auto playerPInfo = AutoPolygon::generatePolygon("game/player50x50.png");
-	//auto player = Sprite::create(playerPInfo);
-	auto player = Sprite::create(playerPicOl[player_code - 1]);
-	player->setTag(PLAYER_SPRITE_TAG);
-
-	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
-	playerBody->setGravityEnable(false);
-	playerBody->setContactTestBitmask(0x03);//0011
-	playerBody->setCollisionBitmask(0x01);
-	player->setPhysicsBody(playerBody); 
-
-
-	//player initial position
-	srand(time(NULL) * player_code);
-	player->setPosition(Vec2(rand() % (int)((MAP_WIDTH_TIMES - 1) * visibleSize.width) - (MAP_WIDTH_TIMES - 1) / 2.0 * visibleSize.width,
-		rand() % (int)((MAP_HEIGHT_TIMES - 1) * visibleSize.height) - (MAP_HEIGHT_TIMES - 1) / 2.0 * visibleSize.height));
-	log("%f, %f", player->getPosition().x, player->getPosition().y);
-	this->addChild(player, 2);
-
-	vecPlayerSprite.push_back(player);
-	aryMultiPlayerSprite[player_code - 1] = vecPlayerSprite;
 
 	//create little particles when initialize
 	createLittleParticles(INIT_PARTICLE_NUM);
@@ -205,6 +218,10 @@ void GameOl::onEnter()
 	this->schedule(schedule_selector(GameOl::update), 1.0 / 60.0);
 
 	this->schedule(schedule_selector(GameOl::sendInitPos), 30.0 / 60.0);
+
+	this->schedule(schedule_selector(GameOl::sendRefreshInfo), 10.0 / 60.0);
+
+	this->schedule(schedule_selector(GameOl::loadingTime), 60.0 / 60.0);
 }
 
 void GameOl::onExit()
@@ -234,207 +251,216 @@ bool if_is_moving_ol = false;
 
 bool GameOl::onTouchBegan(Touch * touch, Event * event)
 {
-	Vec2 locationInNode = touch->getLocation() - viewOffset * viewScale - playerCenter;
-	//log("touch %f %f", touch->getLocation().x, touch->getLocation().y);
-	//log("player %f %f", playerCenter.x, playerCenter.y);
-	//log("view offset %f %f", viewOffset.x, viewOffset.y);
-	//log("sum offset %f %f", locationInNode.x, locationInNode.y);
-
-	//8 directions instead of any directions to move smoothly
-	float tan = abs(locationInNode.y / locationInNode.x);
-	previous_if_x_is_minus_ol = (locationInNode.x > 0) ? 1 : -1;//the first direction type, so we use previous_... in file scope
-	previous_if_y_is_minus_ol = (locationInNode.y > 0) ? 1 : -1;//to compare with the next
-
-	for (int i = 0; i < vecPlayerSprite.size(); i++)
+	if (if_loading_finished)
 	{
-		auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),//1000 seconds until touchMoved or touchEnded
-			Vec2(0, SPEED * previous_if_y_is_minus_ol));
-		auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-			Vec2(0.707 * SPEED * previous_if_x_is_minus_ol, 0.707 * SPEED * previous_if_y_is_minus_ol));
-		auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-			Vec2(SPEED * previous_if_x_is_minus_ol, 0));
-		move1->setTag(MOVE_ACTION_1);//set tag for actions to stop them in the following function
-		move2->setTag(MOVE_ACTION_2);
-		move3->setTag(MOVE_ACTION_3);
+		Vec2 locationInNode = touch->getLocation() - viewOffset * viewScale - playerCenter;
+		//log("touch %f %f", touch->getLocation().x, touch->getLocation().y);
+		//log("player %f %f", playerCenter.x, playerCenter.y);
+		//log("view offset %f %f", viewOffset.x, viewOffset.y);
+		//log("sum offset %f %f", locationInNode.x, locationInNode.y);
 
-		if (tan > 2.4142)//tan 77.5
-		{			
-			string msg = to_string(player_code) + "11";
-			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
-			this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+		//8 directions instead of any directions to move smoothly
+		float tan = abs(locationInNode.y / locationInNode.x);
+		previous_if_x_is_minus_ol = (locationInNode.x > 0) ? 1 : -1;//the first direction type, so we use previous_... in file scope
+		previous_if_y_is_minus_ol = (locationInNode.y > 0) ? 1 : -1;//to compare with the next
 
-			vecPlayerSprite[i]->runAction(move1);
-			previous_kind_of_move_action_ol = 1;
-
-		}
-		else if (tan > 0.4142)//tan 22.5
+		for (int i = 0; i < vecPlayerSprite.size(); i++)
 		{
-			string msg = to_string(player_code) + "12";
-			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
-			this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+			auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),//1000 seconds until touchMoved or touchEnded
+				Vec2(0, SPEED * previous_if_y_is_minus_ol));
+			auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+				Vec2(0.707 * SPEED * previous_if_x_is_minus_ol, 0.707 * SPEED * previous_if_y_is_minus_ol));
+			auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+				Vec2(SPEED * previous_if_x_is_minus_ol, 0));
+			move1->setTag(MOVE_ACTION_1);//set tag for actions to stop them in the following function
+			move2->setTag(MOVE_ACTION_2);
+			move3->setTag(MOVE_ACTION_3);
 
-			vecPlayerSprite[i]->runAction(move2);
-			previous_kind_of_move_action_ol = 2;
-		}
-		else
-		{
-			string msg = to_string(player_code) + "13";
-			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
-			this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+			if (tan > 2.4142)//tan 77.5
+			{
+				string msg = to_string(player_code) + "11";
+				moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+				this_client->sendMessage(MOVE_ACTION, msg + "||||||||||||");
 
-			vecPlayerSprite[i]->runAction(move3);
-			previous_kind_of_move_action_ol = 3;
+				vecPlayerSprite[i]->runAction(move1);
+				previous_kind_of_move_action_ol = 1;
+
+			}
+			else if (tan > 0.4142)//tan 22.5
+			{
+				string msg = to_string(player_code) + "12";
+				moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+				this_client->sendMessage(MOVE_ACTION, msg + "||||||||||||");
+
+				vecPlayerSprite[i]->runAction(move2);
+				previous_kind_of_move_action_ol = 2;
+			}
+			else
+			{
+				string msg = to_string(player_code) + "13";
+				moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+				this_client->sendMessage(MOVE_ACTION, msg + "||||||||||||");
+
+				vecPlayerSprite[i]->runAction(move3);
+				previous_kind_of_move_action_ol = 3;
+			}
 		}
+
+		//call function that changes view position using schedule
+		//this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
+
+		if_is_moving_ol = true;
 	}
-
-	//call function that changes view position using schedule
-	//this->schedule(schedule_selector(Game::spriteFollowedView), 1.0 / 60.0);
-
-	if_is_moving_ol = true;
 
 	return true;
 }
 
 void GameOl::onTouchMoved(Touch * touch, Event * event)
 {
-	//Function calling inteval(ms)
-	//if the interval is too short, funtion calling too frequent, the sprite cannot move or change directions smoothly
-	if (clock() - moveStartTimeOl > 100)
+	if (if_loading_finished)
 	{
-		Vec2 locationInNode = touch->getLocation() - viewOffset * viewScale - playerCenter;
-		//log("touch location: (%f,%f)", touch->getLocation().x, touch->getLocation().y);
-		//log("player center: (%f,%f)", playerCenter.x, playerCenter.y);
-		//log("offset: (%f,%f)", locationInNode.x, locationInNode.y);
-		//log("%f %f", locationInNode.x, locationInNode.y);
-
-		float tan = abs(locationInNode.y / locationInNode.x);
-		int if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;//maybe a new diretion, so we use them without previous_...
-		int if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;
-		//log("tan: %f, x: %d, y: %d", tan, if_x_is_minus, if_y_is_minus);
-
-		bool if_move_action_is_same = true;
-		int kind_of_move_action;
-
-		if ((if_x_is_minus == previous_if_x_is_minus_ol) && (if_y_is_minus == previous_if_y_is_minus_ol))
+		//Function calling inteval(ms)
+		//if the interval is too short, funtion calling too frequent, the sprite cannot move or change directions smoothly
+		if (clock() - moveStartTimeOl > 100)
 		{
-			if (tan > 2.4142)
+			Vec2 locationInNode = touch->getLocation() - viewOffset * viewScale - playerCenter;
+			//log("touch location: (%f,%f)", touch->getLocation().x, touch->getLocation().y);
+			//log("player center: (%f,%f)", playerCenter.x, playerCenter.y);
+			//log("offset: (%f,%f)", locationInNode.x, locationInNode.y);
+			//log("%f %f", locationInNode.x, locationInNode.y);
+
+			float tan = abs(locationInNode.y / locationInNode.x);
+			int if_x_is_minus = (locationInNode.x > 0) ? 1 : -1;//maybe a new diretion, so we use them without previous_...
+			int if_y_is_minus = (locationInNode.y > 0) ? 1 : -1;
+			//log("tan: %f, x: %d, y: %d", tan, if_x_is_minus, if_y_is_minus);
+
+			bool if_move_action_is_same = true;
+			int kind_of_move_action;
+
+			if ((if_x_is_minus == previous_if_x_is_minus_ol) && (if_y_is_minus == previous_if_y_is_minus_ol))
 			{
-				if (previous_kind_of_move_action_ol == 1);//the direction is the same as it is previously, so we do nothing
+				if (tan > 2.4142)
+				{
+					if (previous_kind_of_move_action_ol == 1);//the direction is the same as it is previously, so we do nothing
+					else
+					{
+						if_move_action_is_same = false;
+						kind_of_move_action = 1;
+					}
+				}
+				else if (tan > 0.4142)
+				{
+					if (previous_kind_of_move_action_ol == 2);
+					else
+					{
+						if_move_action_is_same = false;
+						kind_of_move_action = 2;
+					}
+				}
 				else
 				{
-					if_move_action_is_same = false;
+					if (previous_kind_of_move_action_ol == 3);
+					else
+					{
+						if_move_action_is_same = false;
+						kind_of_move_action = 3;
+					}
+				}
+			}
+			else
+			{
+				if_move_action_is_same = false;
+
+				if (tan > 2.4142)
 					kind_of_move_action = 1;
-				}
-			}
-			else if (tan > 0.4142)
-			{
-				if (previous_kind_of_move_action_ol == 2);
-				else
-				{
-					if_move_action_is_same = false;
+				else if (tan > 0.4142)
 					kind_of_move_action = 2;
-				}
-			}
-			else
-			{
-				if (previous_kind_of_move_action_ol == 3);
 				else
-				{
-					if_move_action_is_same = false;
 					kind_of_move_action = 3;
-				}
 			}
-		}
-		else
-		{
-			if_move_action_is_same = false;
 
-			if (tan > 2.4142)
-				kind_of_move_action = 1;
-			else if (tan > 0.4142)
-				kind_of_move_action = 2;
-			else
-				kind_of_move_action = 3;
-		}
-
-		if (!if_move_action_is_same)
-		{
-			for (int i = 0; i < vecPlayerSprite.size(); i++)
+			if (!if_move_action_is_same)
 			{
-				auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-					Vec2(0, SPEED * if_y_is_minus));
-				auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-					Vec2(0.707 * SPEED * if_x_is_minus, 0.707 * SPEED * if_y_is_minus));
-				auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-					Vec2(SPEED * if_x_is_minus, 0));
-				move1->setTag(MOVE_ACTION_1);//tag for stopping
-				move2->setTag(MOVE_ACTION_2);
-				move3->setTag(MOVE_ACTION_3);
-
-				vecPlayerSprite[i]->stopAllActions();
-				//vecPlayerSprite[i]->stopActionByTag(previous_kind_of_move_action_ol);//since direction should change, the previous action stops
-				previous_kind_of_move_action_ol = kind_of_move_action;//new direction, record this action type to compare with the next
-				previous_if_x_is_minus_ol = if_x_is_minus;
-				previous_if_y_is_minus_ol = if_y_is_minus;
-
-				if (previous_kind_of_move_action_ol == 1)
+				for (int i = 0; i < vecPlayerSprite.size(); i++)
 				{
-					string msg = to_string(player_code) + "21";
-					moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
-					this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+					auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+						Vec2(0, SPEED * if_y_is_minus));
+					auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+						Vec2(0.707 * SPEED * if_x_is_minus, 0.707 * SPEED * if_y_is_minus));
+					auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+						Vec2(SPEED * if_x_is_minus, 0));
+					move1->setTag(MOVE_ACTION_1);//tag for stopping
+					move2->setTag(MOVE_ACTION_2);
+					move3->setTag(MOVE_ACTION_3);
 
-					vecPlayerSprite[i]->runAction(move1);
-				}
-				else if (previous_kind_of_move_action_ol == 2)
-				{
-					string msg = to_string(player_code) + "22";
-					moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
-					this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+					vecPlayerSprite[i]->stopAllActions();
+					//vecPlayerSprite[i]->stopActionByTag(previous_kind_of_move_action_ol);//since direction should change, the previous action stops
+					previous_kind_of_move_action_ol = kind_of_move_action;//new direction, record this action type to compare with the next
+					previous_if_x_is_minus_ol = if_x_is_minus;
+					previous_if_y_is_minus_ol = if_y_is_minus;
 
-					vecPlayerSprite[i]->runAction(move2);
-				}
-				else
-				{
-					string msg = to_string(player_code) + "23";
-					moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
-					this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+					if (previous_kind_of_move_action_ol == 1)
+					{
+						string msg = to_string(player_code) + "21";
+						moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+						this_client->sendMessage(MOVE_ACTION, msg + "||||||||||||");
 
-					vecPlayerSprite[i]->runAction(move3);
+						vecPlayerSprite[i]->runAction(move1);
+					}
+					else if (previous_kind_of_move_action_ol == 2)
+					{
+						string msg = to_string(player_code) + "22";
+						moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+						this_client->sendMessage(MOVE_ACTION, msg + "||||||||||||");
+
+						vecPlayerSprite[i]->runAction(move2);
+					}
+					else
+					{
+						string msg = to_string(player_code) + "23";
+						moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+						this_client->sendMessage(MOVE_ACTION, msg + "||||||||||||");
+
+						vecPlayerSprite[i]->runAction(move3);
+					}
+					//log("move%d", kind_of_move_action);
 				}
-				//log("move%d", kind_of_move_action);
 			}
-		}
 
-		//record time the function ends to control the intervals between two callings
-		moveStartTimeOl = clock();
+			//record time the function ends to control the intervals between two callings
+			moveStartTimeOl = clock();
+		}
 	}
 }
 
 void GameOl::onTouchEnded(Touch * touch, Event * event)
 {
-	for (int i = 0; i < vecPlayerSprite.size(); i++)
+	if (if_loading_finished)
 	{
-		string msg = to_string(player_code) + "3|||||||";
-		this_client->sendMessage(MOVE_ACTION, msg);
+		for (int i = 0; i < vecPlayerSprite.size(); i++)
+		{
+			string msg = to_string(player_code) + "3||||||||||||||";
+			this_client->sendMessage(MOVE_ACTION, msg);
 
-		vecPlayerSprite[i]->stopAllActions();
-		//vecPlayerSprite[i]->stopActionByTag(previous_kind_of_move_action_ol);
+			vecPlayerSprite[i]->stopAllActions();
+			//vecPlayerSprite[i]->stopActionByTag(previous_kind_of_move_action_ol);
 
-		//when touch ended, stop slowly
-		//not completed...
-		/*ActionInterval* move;
-		if (previous_kind_of_move_action_ol == 1)
-		move = MoveBy::create(0.5, Vec2(0, 2000 * SPEED * previous_if_y_is_minus_ol));
-		else if (previous_kind_of_move_action_ol == 2)
-		move = MoveBy::create(0.5, Vec2(2000 * 0.707 * SPEED * previous_if_x_is_minus_ol, 2000 * 0.707 * SPEED * previous_if_y_is_minus_ol));
-		else
-		move = MoveBy::create(0.5, Vec2(2000 * SPEED * previous_if_x_is_minus_ol, 0));
+			//when touch ended, stop slowly
+			//not completed...
+			/*ActionInterval* move;
+			if (previous_kind_of_move_action_ol == 1)
+			move = MoveBy::create(0.5, Vec2(0, 2000 * SPEED * previous_if_y_is_minus_ol));
+			else if (previous_kind_of_move_action_ol == 2)
+			move = MoveBy::create(0.5, Vec2(2000 * 0.707 * SPEED * previous_if_x_is_minus_ol, 2000 * 0.707 * SPEED * previous_if_y_is_minus_ol));
+			else
+			move = MoveBy::create(0.5, Vec2(2000 * SPEED * previous_if_x_is_minus_ol, 0));
 
-		target->runAction(EaseOut::create(move, 3));*/
+			target->runAction(EaseOut::create(move, 3));*/
 
-		//unschedule(schedule_selector(Game::spriteFollowedView));
+			//unschedule(schedule_selector(Game::spriteFollowedView));
 
-		if_is_moving_ol = false;
+			if_is_moving_ol = false;
+		}
 	}
 }
 
@@ -442,107 +468,110 @@ void GameOl::onTouchEnded(Touch * touch, Event * event)
 //when release right mouse button, divide
 void GameOl::mouseUp(Event* event)
 {
-	EventMouse* e = (EventMouse*)event;
-	if (e->getMouseButton() == EventMouse::MouseButton::BUTTON_RIGHT)
+	if (if_loading_finished)
 	{
-		log("Mouse up");
-		int playerSpriteNum = vecPlayerSprite.size();
-		for (int i = 0; i < playerSpriteNum; i++)
+		EventMouse* e = (EventMouse*)event;
+		if (e->getMouseButton() == EventMouse::MouseButton::BUTTON_RIGHT)
 		{
-			if (vecPlayerSprite[i]->getScale() > 1.5)
+			log("Mouse up");
+			int playerSpriteNum = vecPlayerSprite.size();
+			for (int i = 0; i < playerSpriteNum; i++)
 			{
-				vecPlayerSprite[i]->setScale(0.6 * vecPlayerSprite[i]->getScale());//0.707? 
-
-				auto player = Sprite::create("game/player50x50.png");
-				//player->setColor(Color3B(0, 0, 0));
-				player->setTag(PLAYER_SPRITE_TAG);
-
-				auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
-				playerBody->setGravityEnable(false);
-				playerBody->setContactTestBitmask(0x03);//0011
-				playerBody->setCollisionBitmask(0x01);
-				player->setPhysicsBody(playerBody);
-
-				player->setScale(vecPlayerSprite[i]->getScale());
-				this->addChild(player);
-
-				//set the new sprite's position
-				//and make it move(if others are moving)
-				//and adjust the speed of the original sprite
-				log("moving%d", if_is_moving_ol);
-				//if_is_moving_ol = false;
-				if (previous_kind_of_move_action_ol == 1)
+				if (vecPlayerSprite[i]->getScale() > 1.5)
 				{
-					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x,
-						vecPlayerSprite[i]->getPosition().y
-						+ 100 * vecPlayerSprite[i]->getScale() * previous_if_y_is_minus_ol));//50 maybe need to be changed
-					if (if_is_moving_ol)
+					vecPlayerSprite[i]->setScale(0.6 * vecPlayerSprite[i]->getScale());//0.707? 
+
+					auto player = Sprite::create("game/player50x50.png");
+					//player->setColor(Color3B(0, 0, 0));
+					player->setTag(PLAYER_SPRITE_TAG);
+
+					auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+					playerBody->setGravityEnable(false);
+					playerBody->setContactTestBitmask(0x03);//0011
+					playerBody->setCollisionBitmask(0x01);
+					player->setPhysicsBody(playerBody);
+
+					player->setScale(vecPlayerSprite[i]->getScale());
+					this->addChild(player);
+
+					//set the new sprite's position
+					//and make it move(if others are moving)
+					//and adjust the speed of the original sprite
+					log("moving%d", if_is_moving_ol);
+					//if_is_moving_ol = false;
+					if (previous_kind_of_move_action_ol == 1)
 					{
-						//vecPlayerSprite[i]->stopAllActions();
+						player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x,
+							vecPlayerSprite[i]->getPosition().y
+							+ 100 * vecPlayerSprite[i]->getScale() * previous_if_y_is_minus_ol));//50 maybe need to be changed
+						if (if_is_moving_ol)
+						{
+							//vecPlayerSprite[i]->stopAllActions();
 
-						//needs to be changed
+							//needs to be changed
 
-						auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-							Vec2(0, SPEED * previous_if_y_is_minus_ol));
-						move1->setTag(MOVE_ACTION_1);
-						/*auto moveShort1 = MoveBy::create(1 * vecPlayerSprite[i]->getScale(),
-						Vec2(0, SPEED * previous_if_y_is_minus_ol / 1000));
-						auto moveFast1 = EaseOut::create(moveShort1, 3);
-						auto seq1 = Sequence::create(move1, moveFast1, NULL);*/
+							auto move1 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+								Vec2(0, SPEED * previous_if_y_is_minus_ol));
+							move1->setTag(MOVE_ACTION_1);
+							/*auto moveShort1 = MoveBy::create(1 * vecPlayerSprite[i]->getScale(),
+							Vec2(0, SPEED * previous_if_y_is_minus_ol / 1000));
+							auto moveFast1 = EaseOut::create(moveShort1, 3);
+							auto seq1 = Sequence::create(move1, moveFast1, NULL);*/
 
-						vecPlayerSprite[i]->stopAllActions();
-						vecPlayerSprite[i]->runAction(move1);
+							vecPlayerSprite[i]->stopAllActions();
+							vecPlayerSprite[i]->runAction(move1);
 
-						player->runAction(move1->clone());
-						log("move1 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+							player->runAction(move1->clone());
+							log("move1 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+						}
 					}
-				}
-				else if (previous_kind_of_move_action_ol == 2)
-				{
-					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x
-						+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
-						vecPlayerSprite[i]->getPosition().y
-						+ 100 * vecPlayerSprite[i]->getScale()* previous_if_y_is_minus_ol));
-					if (if_is_moving_ol)
+					else if (previous_kind_of_move_action_ol == 2)
 					{
-						//vecPlayerSprite[i]->stopAllActions();
+						player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x
+							+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
+							vecPlayerSprite[i]->getPosition().y
+							+ 100 * vecPlayerSprite[i]->getScale()* previous_if_y_is_minus_ol));
+						if (if_is_moving_ol)
+						{
+							//vecPlayerSprite[i]->stopAllActions();
 
-						auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-							Vec2(0.707 * SPEED * previous_if_x_is_minus_ol, 0.707 * SPEED * previous_if_y_is_minus_ol));
-						move2->setTag(MOVE_ACTION_2);
+							auto move2 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+								Vec2(0.707 * SPEED * previous_if_x_is_minus_ol, 0.707 * SPEED * previous_if_y_is_minus_ol));
+							move2->setTag(MOVE_ACTION_2);
 
-						vecPlayerSprite[i]->stopAllActions();
-						vecPlayerSprite[i]->runAction(move2);
+							vecPlayerSprite[i]->stopAllActions();
+							vecPlayerSprite[i]->runAction(move2);
 
-						player->runAction(move2->clone());
-						log("move2 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+							player->runAction(move2->clone());
+							log("move2 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+						}
 					}
-				}
-				else
-				{
-					player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x
-						+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
-						vecPlayerSprite[i]->getPosition().y));
-					if (if_is_moving_ol)
+					else
 					{
-						//vecPlayerSprite[i]->stopAllActions();
+						player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x
+							+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
+							vecPlayerSprite[i]->getPosition().y));
+						if (if_is_moving_ol)
+						{
+							//vecPlayerSprite[i]->stopAllActions();
 
-						auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
-							Vec2(SPEED * previous_if_x_is_minus_ol, 0));
-						move3->setTag(MOVE_ACTION_3);
+							auto move3 = MoveBy::create(1000 * vecPlayerSprite[i]->getScale(),
+								Vec2(SPEED * previous_if_x_is_minus_ol, 0));
+							move3->setTag(MOVE_ACTION_3);
 
-						vecPlayerSprite[i]->stopAllActions();
-						vecPlayerSprite[i]->runAction(move3);
+							vecPlayerSprite[i]->stopAllActions();
+							vecPlayerSprite[i]->runAction(move3);
 
-						player->runAction(move3->clone());
-						log("move3 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+							player->runAction(move3->clone());
+							log("move3 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+						}
 					}
+
+					//log("original %f %f", vecPlayerSprite[i]->getPosition().x, vecPlayerSprite[i]->getPosition().y);
+					//log("x %d, y %d, move %d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol, previous_kind_of_move_action_ol);
+
+					vecPlayerSprite.push_back(player);
 				}
-
-				//log("original %f %f", vecPlayerSprite[i]->getPosition().x, vecPlayerSprite[i]->getPosition().y);
-				//log("x %d, y %d, move %d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol, previous_kind_of_move_action_ol);
-
-				vecPlayerSprite.push_back(player);
 			}
 		}
 	}
@@ -767,7 +796,7 @@ void GameOl::createLittleParticles(int particleAmount)
 
 void GameOl::createParticlesByTime(float dt)
 {
-	createLittleParticles(20);
+	createLittleParticles(10);
 }
 
 
@@ -777,13 +806,20 @@ bool GameOl::contactBegin(PhysicsContact& contact)
 	auto littleParticle = (Sprite*)contact.getShapeB()->getBody()->getNode();
 	//log("%p, %p", player, littleParticle);
 
-	if (player && littleParticle && player->getTag() == PLAYER_SPRITE_TAG && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
+	if (player && littleParticle && littleParticle->getTag() == LITTLE_PARTICLE_TAG)
 	{
-		player->setTag(CONTACT_TAG);
-		refreshPlayerScale(1);
-		player->setTag(PLAYER_SPRITE_TAG);
-		this->removeChild(littleParticle);//little particle swallowed
-										  //log("player scale: %f", playerScale);
+		if (player->getTag() == PLAYER_SPRITE_TAG)
+		{
+			player->setTag(CONTACT_TAG);
+			refreshPlayerScale(1);
+			player->setTag(PLAYER_SPRITE_TAG);
+			this->removeChild(littleParticle);//little particle swallowed
+											  //log("player scale: %f", playerScale);
+		}
+		else if (player->getTag() > 300 || player->getTag() < 309)
+		{
+			this->removeChild(littleParticle);
+		}
 	}
 
 	//here littleParticle is also player's ball
@@ -811,13 +847,33 @@ void GameOl::sendInitPos(float dt)
 			+ formatPos((int)aryMultiPlayerSprite[player_code - 1][0]->getPosition().x));
 		this_client->sendMessage(INIT_POS, to_string(player_code) + "y"
 			+ formatPos((int)aryMultiPlayerSprite[player_code - 1][0]->getPosition().y));
+
 		unschedule(schedule_selector(GameOl::sendInitPos));
+	}
+}
+
+
+bool if_waited = false;
+void GameOl::loadingTime(float dt)
+{
+	if (!if_waited)
+	{
+		if_waited = true;
+	}
+	else
+	{
+		this->removeChildByTag(LOADING_TAG);
+		if_loading_finished = true;
+		unschedule(schedule_selector(GameOl::loadingTime));
 	}
 }
 
 
 int init_pos[8][2] = { {0, 0} };
 bool init_pos_got[8] = { 0 };
+
+int refresh_pos[8][2] = { { 0, 0 } };
+bool refresh_pos_got[8] = { 0 };
 
 void GameOl::update(float dt)
 {
@@ -952,6 +1008,123 @@ void GameOl::update(float dt)
 					}
 				}
 			}
+		}
+
+		if (if_loading_finished)
+		{
+			if (temp[0] == PLAYER_SCALE[0])
+			{
+				int code = temp[1] - '0';
+				if (code != player_code)
+				{
+					int ballCode = temp[2] - '0';
+					float ballScale = temp[3] - '0' + 0.1 * (temp[4] - '0') + 0.01 * (temp[5] - '0');
+					aryMultiPlayerSprite[code - 1][ballCode]->setScale(ballScale);
+				}
+			}
+
+			if (temp[0] == PLAYER_POSITION[0])
+			{
+				int code = temp[1] - '0';
+				if (code != player_code)
+				{
+					int ballCode = temp[2] - '0';
+					float posX = 1000 * (temp[3] - '0') + 100 * (temp[4] - '0') + 10 * (temp[5] - '0')
+						+ 1 * (temp[6] - '0') + 0.1 * (temp[7] - '0') + 0.01 * (temp[8] - '0');
+					float posY = 1000 * (temp[9] - '0') + 100 * (temp[10] - '0') + 10 * (temp[11] - '0')
+						+ 1 * (temp[12] - '0') + 0.1 * (temp[13] - '0') + 0.01 * (temp[14] - '0');
+					if (temp[15] == '2')
+					{
+						posY = -posY;
+					}
+					else if (temp[15] == '3')
+					{
+						posX = -posX;
+					}
+					else if (temp[15] == '4')
+					{
+						posX = -posX;
+						posY = -posY;
+					}
+					aryMultiPlayerSprite[code - 1][ballCode]->setPosition(posX, posY);
+				}
+			}
+		}
+	}
+}
+
+
+int times = 0;
+
+void GameOl::sendRefreshInfo(float dt)
+{
+	if (if_loading_finished)
+	{
+		if (times == 6)
+		{
+			for (int i = 0; i < vecPlayerSprite.size(); i++)
+			{
+				//position?
+				string msg = to_string(player_code) + to_string(i);
+				string xPosStr = to_string(vecPlayerSprite[i]->getPosition().x);
+				string yPosStr = to_string(vecPlayerSprite[i]->getPosition().y);
+				refreshFmtPos(msg, vecPlayerSprite[i]->getPosition().x, vecPlayerSprite[i]->getPosition().y);
+				/*if (vecPlayerSprite[i]->getPosition().x > 0)
+				{
+
+					if (vecPlayerSprite[i]->getPosition().y > 0)
+					{
+						msg += to_string(xPosStr[0] - '0') + to_string(xPosStr[1] - '0') + to_string(xPosStr[2] - '0')
+							+ to_string(xPosStr[3] - '0') + to_string(xPosStr[5] - '0') + to_string(xPosStr[6] - '0')
+							+ to_string(yPosStr[0] - '0') + to_string(yPosStr[1] - '0') + to_string(yPosStr[2] - '0')
+							+ to_string(yPosStr[3] - '0') + to_string(yPosStr[5] - '0') + to_string(yPosStr[6] - '0')
+							+ "1|";
+					}
+					else
+					{
+						msg += to_string(xPosStr[0] - '0') + to_string(xPosStr[1] - '0') + to_string(xPosStr[2] - '0')
+							+ to_string(xPosStr[3] - '0') + to_string(xPosStr[5] - '0') + to_string(xPosStr[6] - '0')
+							+ to_string(yPosStr[1] - '0') + to_string(yPosStr[2] - '0') + to_string(yPosStr[3] - '0')
+							+ to_string(yPosStr[4] - '0') + to_string(yPosStr[6] - '0') + to_string(yPosStr[7] - '0')
+							+ "2|";
+					}
+				}
+				else
+				{
+					if (vecPlayerSprite[i]->getPosition().y > 0)
+					{
+						msg += to_string(xPosStr[1] - '0') + to_string(xPosStr[2] - '0') + to_string(xPosStr[3] - '0')
+							+ to_string(xPosStr[4] - '0') + to_string(xPosStr[6] - '0') + to_string(xPosStr[7] - '0')
+							+ to_string(yPosStr[0] - '0') + to_string(yPosStr[1] - '0') + to_string(yPosStr[2] - '0')
+							+ to_string(yPosStr[3] - '0') + to_string(yPosStr[5] - '0') + to_string(yPosStr[6] - '0')
+							+ "3|";
+					}
+					else
+					{
+						msg += to_string(xPosStr[1] - '0') + to_string(xPosStr[2] - '0') + to_string(xPosStr[3] - '0')
+							+ to_string(xPosStr[4] - '0') + to_string(xPosStr[6] - '0') + to_string(xPosStr[7] - '0')
+							+ to_string(yPosStr[1] - '0') + to_string(yPosStr[2] - '0') + to_string(yPosStr[3] - '0')
+							+ to_string(yPosStr[4] - '0') + to_string(yPosStr[6] - '0') + to_string(yPosStr[7] - '0')
+							+ "4|";
+					}
+				}*/
+				this_client->sendMessage(PLAYER_POSITION, msg);
+			}
+			times = 0;
+		}
+
+		else
+		{
+			for (int i = 0; i < vecPlayerSprite.size(); i++)
+			{
+				string msg = to_string(player_code) + to_string(i);
+				string scaleStr = to_string(vecPlayerSprite[i]->getScale());
+				msg += to_string(scaleStr[0] - '0') + to_string(scaleStr[2] - '0')
+					+ to_string(scaleStr[3] - '0') + "||||" + "|||||||";
+				this_client->sendMessage(PLAYER_SCALE, msg);
+			}
+
+			times++;
 		}
 	}
 }
