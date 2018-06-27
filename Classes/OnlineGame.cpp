@@ -116,9 +116,13 @@ bool GameOl::init()
 	createLittleParticles(INIT_PARTICLE_NUM);
 
 	//test sign for (0,0)
-	auto test = Sprite::create("HelloWorld.png");
+	/*auto test = Sprite::create("HelloWorld.png");
 	test->setPosition(Vec2(0, 0));
-	this->addChild(test, 0);
+	this->addChild(test, 0);*/
+
+	/*auto loading = Sprite::create("game/loading.png");
+	loading->setPosition(Vec2(player->getPosition().x, player->getPosition().y));
+	player->addChild(loading);*/
 
 	return true;
 }
@@ -254,17 +258,30 @@ bool GameOl::onTouchBegan(Touch * touch, Event * event)
 		move3->setTag(MOVE_ACTION_3);
 
 		if (tan > 2.4142)//tan 77.5
-		{
+		{			
+			string msg = to_string(player_code) + "11";
+			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+			this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+
 			vecPlayerSprite[i]->runAction(move1);
 			previous_kind_of_move_action_ol = 1;
+
 		}
 		else if (tan > 0.4142)//tan 22.5
 		{
+			string msg = to_string(player_code) + "12";
+			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+			this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+
 			vecPlayerSprite[i]->runAction(move2);
 			previous_kind_of_move_action_ol = 2;
 		}
 		else
 		{
+			string msg = to_string(player_code) + "13";
+			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+			this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+
 			vecPlayerSprite[i]->runAction(move3);
 			previous_kind_of_move_action_ol = 3;
 		}
@@ -361,11 +378,29 @@ void GameOl::onTouchMoved(Touch * touch, Event * event)
 				previous_if_y_is_minus_ol = if_y_is_minus;
 
 				if (previous_kind_of_move_action_ol == 1)
+				{
+					string msg = to_string(player_code) + "21";
+					moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+					this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+
 					vecPlayerSprite[i]->runAction(move1);
+				}
 				else if (previous_kind_of_move_action_ol == 2)
+				{
+					string msg = to_string(player_code) + "22";
+					moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+					this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+
 					vecPlayerSprite[i]->runAction(move2);
+				}
 				else
+				{
+					string msg = to_string(player_code) + "23";
+					moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+					this_client->sendMessage(MOVE_ACTION, msg + "|||||");
+
 					vecPlayerSprite[i]->runAction(move3);
+				}
 				//log("move%d", kind_of_move_action);
 			}
 		}
@@ -379,6 +414,9 @@ void GameOl::onTouchEnded(Touch * touch, Event * event)
 {
 	for (int i = 0; i < vecPlayerSprite.size(); i++)
 	{
+		string msg = to_string(player_code) + "3|||||||";
+		this_client->sendMessage(MOVE_ACTION, msg);
+
 		vecPlayerSprite[i]->stopAllActions();
 		//vecPlayerSprite[i]->stopActionByTag(previous_kind_of_move_action_ol);
 
@@ -786,7 +824,7 @@ void GameOl::update(float dt)
 	std::string temp = this_client->executeOrder();
 	if (temp != "no")
 	{
-		log("order");
+		//log("order");
 		if (temp[0] == INIT_POS[0])
 		{
 			int code = temp[1] - '0';
@@ -819,6 +857,100 @@ void GameOl::update(float dt)
 				}
 				else
 					init_pos_got[code - 1] = 1;
+			}
+		}
+
+		if (temp[0] == MOVE_ACTION[0])
+		{
+			int code = temp[1] - '0';
+			if (code != player_code)
+			{
+				vector<Sprite*> vecSprite = aryMultiPlayerSprite[code - 1];
+				int x, y;
+				int tan = temp[3] - '0';
+				if (temp[4] == '1')
+				{
+					x = 1;
+					y = 1;
+				}
+				else if (temp[4] == '2')
+				{
+					x = 1;
+					y = -1;
+				}
+				else if (temp[4] == '3')
+				{
+					x = -1;
+					y = 1;
+				}
+				else
+				{
+					x = -1;
+					y = -1;
+				}
+
+				//touch began
+				if (temp[2] == '1')
+				{
+					for (int i = 0; i < vecSprite.size(); i++)
+					{
+						if (tan == 1)//tan 77.5
+						{
+							auto move1 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+								Vec2(0, SPEED * y));
+							vecSprite[i]->runAction(move1);
+						}
+						else if (tan == 2)//tan 22.5
+						{
+							auto move2 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+								Vec2(0.707 * SPEED * x, 0.707 * SPEED * y));
+							vecSprite[i]->runAction(move2);
+						}
+						else
+						{
+							auto move3 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+								Vec2(SPEED * x, 0));
+							vecSprite[i]->runAction(move3);
+						}
+					}
+				}
+
+				//touch moved
+				else if (temp[2] == '2')
+				{
+					for (int i = 0; i < vecSprite.size(); i++)
+					{
+						vecSprite[i]->stopAllActions();
+
+						if (tan == 1)
+						{
+							auto move1 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+								Vec2(0, SPEED * y));
+							vecSprite[i]->runAction(move1);
+						}
+						else if (tan == 2)
+						{
+							auto move2 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+								Vec2(0.707 * SPEED * x, 0.707 * SPEED * y));
+							vecSprite[i]->runAction(move2);
+						}
+						else
+						{
+							auto move3 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+								Vec2(SPEED * x, 0));
+							vecSprite[i]->runAction(move3);
+						}
+					}
+				}
+
+				//touch ended
+				else
+				{
+					for (int i = 0; i < vecSprite.size(); i++)
+					{
+						vecSprite[i]->stopAllActions();
+					}
+				}
 			}
 		}
 	}

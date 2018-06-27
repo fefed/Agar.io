@@ -24,6 +24,7 @@ public:
 	void search(float dt);
 	void update(float dt);
 	void startCheck(float dt);
+	//void close(float dt);
 
 	// implement the "static create()" method manually
 	CREATE_FUNC(Room);

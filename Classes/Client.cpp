@@ -336,6 +336,7 @@ void Client::sendMessage(const std::string & code, const std::string & message)
 	memcpy(msg.body(), temp.c_str(), msg.body_length());
 	msg.encode_header();
 	_clientInstance->write(msg);
+
 }
 
 std::string Client::executeOrder(void)

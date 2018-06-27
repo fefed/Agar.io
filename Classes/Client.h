@@ -93,6 +93,20 @@
 #define ANSWER_FOR_START "l"
 
 //动作种类
+//began: 1, moved: 2, ended: 3
+//
+//tan: m1 > 77.5 > m2 > 22.5  > m3
+//
+//		+y		-y
+//+x	1		2
+//-x	3		4
+//
+//example: m2134|||||
+//m for MOVE_ACTION
+//2 for player2
+//1 for touch began
+//3 for tan < 22.5
+//4 for x < 0, y < 0
 #define MOVE_ACTION "m"
 
 //分裂

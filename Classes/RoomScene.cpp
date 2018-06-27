@@ -76,24 +76,27 @@ bool if_start_or_exit = false;
 
 void Room::onExit()
 {	
-	//judge if it is exit or start
-	if (!if_start_or_exit)
-	{
-		if (room_owner)
+	if (client)
+	{	
+		//judge if it is exit or start
+		if (!if_start_or_exit)
 		{
-			client->sendMessage(EXIT_ROOM, "owner||||");
-			//log("1");
+			if (room_owner)
+			{
+				client->sendMessage(EXIT_ROOM, "owner||||");
+				//log("1");
+			}
+			else
+			{
+				client->sendMessage(EXIT_ROOM, "exit|||||");
+				//log("2");
+			}
+			Sleep(100);
+			client->close();
 		}
-		else
-		{
-			client->sendMessage(EXIT_ROOM, "exit|||||");
-			//log("2");
-		}
-		Sleep(100);
-		client->close();
-	}
 
-	unschedule(schedule_selector(Room::update));
+		unschedule(schedule_selector(Room::update));
+	}
 	Scene::onExit();
 }
 
@@ -102,18 +105,23 @@ void Room::menuCloseCallback(cocos2d::Ref* pSender)
 {
 	if_start_or_exit = false;
 
-	if (room_owner)
+	if (client)
 	{
-		client->sendMessage(EXIT_ROOM, "owner||||");
-		//log("3");
+		if (room_owner)
+		{
+			client->sendMessage(EXIT_ROOM, "owner||||");
+			//log("3");
+		}
+		else
+		{
+			client->sendMessage(EXIT_ROOM, "exit|||||");
+			//log("4");
+		}
+
+		//this->schedule(schedule_selector(Room::close), 10.0 / 60.0);
+		Sleep(100);
+		client->close();
 	}
-	else
-	{
-		client->sendMessage(EXIT_ROOM, "exit|||||");
-		//log("4");
-	}
-	Sleep(100);
-	client->close();
 
 	Director::getInstance()->popScene();
 	Director::getInstance()->end();
@@ -147,6 +155,29 @@ void Room::menuItemStartCallback(Ref* pSender)
 		Director::getInstance()->replaceScene(reScene);*/
 	}
 }
+
+
+/*bool ready_for_close = false;
+
+void Room::close(float dt)
+{
+	if (!ready_for_close)
+	{
+		ready_for_close = true;
+	}
+	else
+	{
+		client->close();
+		unschedule(schedule_selector(Room::close));
+
+		Director::getInstance()->popScene();
+		Director::getInstance()->end();
+
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
+		exit(0);
+#endif
+	}
+}*/
 
 
 bool ready_for_check = false;

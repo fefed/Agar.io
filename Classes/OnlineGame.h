@@ -99,6 +99,24 @@ public:
 		return result;
 	}
 
+	void moveMsg5(string& msg, int x, int y)
+	{
+		if (x > 0)
+		{
+			if (y > 0)
+				msg += "1";
+			else
+				msg += "2";
+		}
+		else
+		{
+			if (y > 0)
+				msg += "3";
+			else
+				msg += "4";
+		}
+	}
+
 	vector<Sprite*> vecPlayerSprite;
 	vector<Sprite*> aryMultiPlayerSprite[8];
 
