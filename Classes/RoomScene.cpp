@@ -1,6 +1,6 @@
 #include "RoomScene.h"
 #include "SimpleAudioEngine.h"
-#include "GameScene.h"
+#include "OnlineGame.h"
 #include "Client.h"
 
 #define START_FORBIDDEN_TAG 101
@@ -72,38 +72,45 @@ bool Room::init()
 
 Client* client = nullptr;
 bool room_owner = false;
+bool if_start_or_exit = false;
 
 void Room::onExit()
-{
+{	
 	//judge if it is exit or start
-	if (room_owner)
+	if (!if_start_or_exit)
 	{
-		client->sendMessage(EXIT_ROOM, "owner||||");
-		log("1");
+		if (room_owner)
+		{
+			client->sendMessage(EXIT_ROOM, "owner||||");
+			//log("1");
+		}
+		else
+		{
+			client->sendMessage(EXIT_ROOM, "exit|||||");
+			//log("2");
+		}
+		Sleep(100);
+		client->close();
 	}
-	else
-	{
-		client->sendMessage(EXIT_ROOM, "exit|||||");
-		log("2");
-	}
-	Sleep(100);
-	client->close();
 
+	unschedule(schedule_selector(Room::update));
 	Scene::onExit();
 }
 
 
 void Room::menuCloseCallback(cocos2d::Ref* pSender)
 {
+	if_start_or_exit = false;
+
 	if (room_owner)
 	{
 		client->sendMessage(EXIT_ROOM, "owner||||");
-		log("3");
+		//log("3");
 	}
 	else
 	{
 		client->sendMessage(EXIT_ROOM, "exit|||||");
-		log("4");
+		//log("4");
 	}
 	Sleep(100);
 	client->close();
@@ -150,7 +157,7 @@ void Room::startCheck(float dt)
 	{
 		if (ready_for_check)
 		{
-			log("%d", true_player_count);
+			log("player count %d", true_player_count);
 			if (true_player_count > player_count)
 			{
 				client->sendMessage(START_FAILED, "fail|||||");
@@ -371,9 +378,10 @@ void Room::update(float dt)
 
 			if (temp[0] == START_GAME[0])
 			{
+				if_start_or_exit = true;
 				Director::getInstance()->popScene();
 
-				auto sc = Game::createScene();
+				auto sc = GameOl::createScene(client);
 				auto reScene = TransitionCrossFade::create(0.5f, sc);
 				Director::getInstance()->replaceScene(reScene);
 			}
@@ -439,9 +447,10 @@ void Room::update(float dt)
 
 			if (temp[0] == START_GAME[0])
 			{
+				if_start_or_exit = true;
 				Director::getInstance()->popScene();
 
-				auto sc = Game::createScene();
+				auto sc = GameOl::createScene(client);
 				auto reScene = TransitionCrossFade::create(0.5f, sc);
 				Director::getInstance()->replaceScene(reScene);
 			}

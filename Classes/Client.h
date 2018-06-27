@@ -233,6 +233,10 @@ public:
 		Client *sprite = new Client();
 		if (sprite)
 		{
+			//remember to release?
+			//remember to release?
+			//remember to release?
+
 			sprite->autorelease();
 			sprite->runClient(mode);
 
@@ -283,6 +287,6 @@ public:
 	}
 };
 
-extern Client* this_client;
+//extern Client* this_client;
 extern int player_num;
 extern int player_count;
