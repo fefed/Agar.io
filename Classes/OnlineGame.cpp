@@ -473,6 +473,11 @@ void GameOl::mouseUp(Event* event)
 		EventMouse* e = (EventMouse*)event;
 		if (e->getMouseButton() == EventMouse::MouseButton::BUTTON_RIGHT)
 		{
+			string msg = to_string(player_code) + to_string(previous_kind_of_move_action_ol);
+			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+			msg += to_string((int)if_is_moving_ol) + "||||||||||||";
+			this_client->sendMessage(DIVIDE_ACTION, msg);
+
 			log("Mouse up");
 			int playerSpriteNum = vecPlayerSprite.size();
 			for (int i = 0; i < playerSpriteNum; i++)
@@ -481,7 +486,7 @@ void GameOl::mouseUp(Event* event)
 				{
 					vecPlayerSprite[i]->setScale(0.6 * vecPlayerSprite[i]->getScale());//0.707? 
 
-					auto player = Sprite::create("game/player50x50.png");
+					auto player = Sprite::create(playerPicOl[player_code - 1]);
 					//player->setColor(Color3B(0, 0, 0));
 					player->setTag(PLAYER_SPRITE_TAG);
 
@@ -868,6 +873,7 @@ void GameOl::loadingTime(float dt)
 	}
 }
 
+bool dividing = false;
 
 int init_pos[8][2] = { {0, 0} };
 bool init_pos_got[8] = { 0 };
@@ -1010,7 +1016,140 @@ void GameOl::update(float dt)
 			}
 		}
 
-		if (if_loading_finished)
+		if (temp[0] == DIVIDE_ACTION[0])
+		{
+			int code = temp[1] - '0';
+			if (code != player_code)
+			{			
+				dividing = true;
+
+				int moveKind = temp[2] - '0';
+				bool if_moving = temp[4] - '0';
+				int x, y;
+				if (temp[3] == '1')
+				{
+					x = 1;
+					y = 1;
+				}
+				else if (temp[3] == '2')
+				{
+					x = 1;
+					y = -1;
+				}
+				else if (temp[3] == '3')
+				{
+					x = -1;
+					y = 1;
+				}
+				else
+				{
+					x = -1;
+					y = -1;
+				}
+
+				vector<Sprite*>& vecSprite = aryMultiPlayerSprite[code - 1];
+				int playerSpriteNum = vecSprite.size();
+
+				for (int i = 0; i < playerSpriteNum; i++)
+				{
+					if (vecSprite[i]->getScale() > 1.5)
+					{
+						vecSprite[i]->setScale(0.6 * vecSprite[i]->getScale());//0.707? 
+
+						auto player = Sprite::create(playerPicOl[code - 1]);
+						player->setTag(playerTag[code - 1]);
+
+						auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+						playerBody->setGravityEnable(false);
+						playerBody->setContactTestBitmask(0x03);//0011
+						playerBody->setCollisionBitmask(0x01);
+						player->setPhysicsBody(playerBody);
+
+						player->setScale(vecSprite[i]->getScale());
+						this->addChild(player);
+
+						//set the new sprite's position
+						//and make it move(if others are moving)
+						//and adjust the speed of the original sprite
+						//log("moving%d", if_is_moving_ol);
+						//if_is_moving_ol = false;
+						if (moveKind == 1)
+						{
+							player->setPosition(Vec2(vecSprite[i]->getPosition().x,
+								vecSprite[i]->getPosition().y
+								+ 100 * vecSprite[i]->getScale() * y));//100 maybe need to be changed
+							if (if_moving)
+							{
+								//vecSprite[i]->stopAllActions();
+
+								//needs to be changed
+
+								auto move1 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+									Vec2(0, SPEED * y));
+								/*auto moveShort1 = MoveBy::create(1 * vecSprite[i]->getScale(),
+								Vec2(0, SPEED * y / 1000));
+								auto moveFast1 = EaseOut::create(moveShort1, 3);
+								auto seq1 = Sequence::create(move1, moveFast1, NULL);*/
+
+								vecSprite[i]->stopAllActions();
+								vecSprite[i]->runAction(move1);
+
+								player->runAction(move1->clone());
+								//log("move1 x%d y%d", x, y);
+							}
+						}
+						else if (moveKind == 2)
+						{
+							player->setPosition(Vec2(vecSprite[i]->getPosition().x
+								+ 100 * vecSprite[i]->getScale() * x,
+								vecSprite[i]->getPosition().y
+								+ 100 * vecSprite[i]->getScale()* y));
+							if (if_moving)
+							{
+								//vecSprite[i]->stopAllActions();
+
+								auto move2 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+									Vec2(0.707 * SPEED * x, 0.707 * SPEED * y));
+
+								vecSprite[i]->stopAllActions();
+								vecSprite[i]->runAction(move2);
+
+								player->runAction(move2->clone());
+								//log("move2 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+							}
+						}
+						else
+						{
+							player->setPosition(Vec2(vecSprite[i]->getPosition().x
+								+ 100 * vecSprite[i]->getScale() * x,
+								vecSprite[i]->getPosition().y));
+							if (if_moving)
+							{
+								//vecSprite[i]->stopAllActions();
+
+								auto move3 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+									Vec2(SPEED * x, 0));
+
+								vecSprite[i]->stopAllActions();
+								vecSprite[i]->runAction(move3);
+
+								player->runAction(move3->clone());
+								//log("move3 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
+							}
+						}
+
+						//log("original %f %f", vecSprite[i]->getPosition().x, vecSprite[i]->getPosition().y);
+						//log("x %d, y %d, move %d", x, y, moveKind);
+
+						vecSprite.push_back(player);
+					}
+				}
+
+				dividing = false;
+			}
+		}
+
+		if (if_loading_finished && !dividing)
 		{
 			if (temp[0] == PLAYER_SCALE[0])
 			{
@@ -1058,9 +1197,9 @@ int times = 0;
 
 void GameOl::sendRefreshInfo(float dt)
 {
-	if (if_loading_finished)
+	if (if_loading_finished && !dividing)
 	{
-		if (times == 6)
+		if (times == 3)
 		{
 			for (int i = 0; i < vecPlayerSprite.size(); i++)
 			{

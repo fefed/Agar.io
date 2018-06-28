@@ -110,6 +110,12 @@
 #define MOVE_ACTION "m"
 
 //·ÖÁÑ
+//example n8120||||||||||||
+//n for DIVIDE_ACTION
+//8 for player8
+//1 for move1
+//2 for x > 0, y < 0
+//0 for if_is_moving_ol == false
 #define DIVIDE_ACTION "n"
 
 //Ìå»ý

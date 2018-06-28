@@ -95,7 +95,7 @@ public:
 		result += 100 * (order[5] - '0');
 		result += 10 * (order[6] - '0');
 		result += 1 * (order[7] - '0');
-		if (order[3] = '-')
+		if (order[3] == '-')
 			result = -result;
 		return result;
 	}
