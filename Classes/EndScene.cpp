@@ -15,6 +15,8 @@ bool End::init()
 		return false;
 	}
 
+	Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+
 	Size visibleSize = Director::getInstance()->getVisibleSize();
 	Vec2 origin = Director::getInstance()->getVisibleOrigin();
 

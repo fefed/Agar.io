@@ -173,6 +173,8 @@ public:
 	vector<Sprite*> vecPlayerSprite;
 	vector<Sprite*> aryMultiPlayerSprite[8];
 
+	int previous_ball_listener = 0;
+
 	// implement the "static create()" method manually
 	CREATE_FUNC(GameOl);
 };

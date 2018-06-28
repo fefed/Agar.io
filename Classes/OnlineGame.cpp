@@ -1,6 +1,5 @@
 #include "OnlineGame.h"
 #include "SimpleAudioEngine.h"
-#include "PauseScene.h"
 #include <time.h>
 #include <stdlib.h>
 #include "EndScene.h"
@@ -148,12 +147,12 @@ Director::getInstance()->popScene();//but not work now
 }*/
 
 // pause the game
-void GameOl::menuPauseSceneCallback(cocos2d::Ref*pSender)
+/*void GameOl::menuPauseSceneCallback(cocos2d::Ref*pSender)
 {
 	auto psc = PauseScene::create();
 	auto reScene = TransitionCrossFade::create(0.5f, psc);
 	Director::getInstance()->pushScene(reScene);
-}
+}*/
 
 void GameOl::onEnter()
 {
@@ -161,7 +160,7 @@ void GameOl::onEnter()
 	log("GameScene onEnter");
 
 	// keyboard listener
-	auto KeyBoardListener = EventListenerKeyboard::create();
+	/*auto KeyBoardListener = EventListenerKeyboard::create();
 	KeyBoardListener->onKeyPressed = [this](EventKeyboard::KeyCode KeyCode, Event*event) {
 		log("The keycode is %d", KeyCode);
 		if (KeyCode == EventKeyboard::KeyCode::KEY_SPACE)
@@ -169,7 +168,7 @@ void GameOl::onEnter()
 	};
 	KeyBoardListener->onKeyReleased = [](EventKeyboard::KeyCode KeyCode, Event*event) {
 		log("The key code is %d", KeyCode);
-	};
+	};*/
 
 
 	//Touch listener
@@ -183,7 +182,7 @@ void GameOl::onEnter()
 	EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
 	eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, getChildByTag(PLAYER_SPRITE_TAG));//? 
 
-	eventDispatcher->addEventListenerWithSceneGraphPriority(KeyBoardListener, this);
+	//eventDispatcher->addEventListenerWithSceneGraphPriority(KeyBoardListener, this);
 
 
 	//contact listener in physics engine
@@ -240,9 +239,7 @@ void GameOl::onExit()
 	this_client->close();
 	this_client->release();
 
-	//dismiss dispatchers
-	//in PauseScene.cpp init()
-	//because Pause::init() is called earlier than Game::onExit()
+	//dismiss dispatchers in end scene init()
 }
 
 
@@ -476,6 +473,8 @@ void GameOl::onTouchEnded(Touch * touch, Event * event)
 }
 
 
+bool dividing = false;
+
 //when release right mouse button, divide
 void GameOl::mouseUp(Event* event)
 {
@@ -484,6 +483,7 @@ void GameOl::mouseUp(Event* event)
 		EventMouse* e = (EventMouse*)event;
 		if (e->getMouseButton() == EventMouse::MouseButton::BUTTON_RIGHT)
 		{
+			dividing = true;
 			string msg = to_string(player_code) + to_string(previous_kind_of_move_action_ol);
 			moveMsg5(msg, previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
 			msg += to_string((int)if_is_moving_ol) + "||||||||||||";
@@ -497,7 +497,9 @@ void GameOl::mouseUp(Event* event)
 				{
 					if (vecPlayerSprite[i]->getScale() > 1.5)
 					{
+						//float targetScale = 0.6 * vecPlayerSprite[i]->getScale();
 						vecPlayerSprite[i]->setScale(0.6 * vecPlayerSprite[i]->getScale());//0.707? 
+						//vecPlayerSprite[i]->runAction(ScaleTo::create(0.1, 0.6));
 
 						auto player = Sprite::create(playerPicOl[player_code - 1]);
 						//player->setColor(Color3B(0, 0, 0));
@@ -510,6 +512,8 @@ void GameOl::mouseUp(Event* event)
 						player->setPhysicsBody(playerBody);
 
 						player->setScale(vecPlayerSprite[i]->getScale());
+						//player->setScale(targetScale);
+						//player->runAction(ScaleTo::create(0.1, 2));
 						this->addChild(player);
 
 						//set the new sprite's position
@@ -521,7 +525,7 @@ void GameOl::mouseUp(Event* event)
 						{
 							player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x,
 								vecPlayerSprite[i]->getPosition().y
-								+ 100 * vecPlayerSprite[i]->getScale() * previous_if_y_is_minus_ol));//50 maybe need to be changed
+								+ 75 * vecPlayerSprite[i]->getScale() * previous_if_y_is_minus_ol));//75 maybe need to be changed
 							if (if_is_moving_ol)
 							{
 								//vecPlayerSprite[i]->stopAllActions();
@@ -546,9 +550,9 @@ void GameOl::mouseUp(Event* event)
 						else if (previous_kind_of_move_action_ol == 2)
 						{
 							player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x
-								+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
+								+ 75 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
 								vecPlayerSprite[i]->getPosition().y
-								+ 100 * vecPlayerSprite[i]->getScale()* previous_if_y_is_minus_ol));
+								+ 75 * vecPlayerSprite[i]->getScale()* previous_if_y_is_minus_ol));
 							if (if_is_moving_ol)
 							{
 								//vecPlayerSprite[i]->stopAllActions();
@@ -567,7 +571,7 @@ void GameOl::mouseUp(Event* event)
 						else
 						{
 							player->setPosition(Vec2(vecPlayerSprite[i]->getPosition().x
-								+ 100 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
+								+ 75 * vecPlayerSprite[i]->getScale() * previous_if_x_is_minus_ol,
 								vecPlayerSprite[i]->getPosition().y));
 							if (if_is_moving_ol)
 							{
@@ -589,9 +593,12 @@ void GameOl::mouseUp(Event* event)
 						//log("x %d, y %d, move %d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol, previous_kind_of_move_action_ol);
 
 						vecPlayerSprite.push_back(player);
+						aryMultiPlayerSprite[player_code - 1].push_back(player);
 					}
 				}
 			}
+
+			dividing = false;
 		}
 	}
 }
@@ -858,14 +865,55 @@ bool GameOl::contactBegin(PhysicsContact& contact)
 		}
 	}
 
-	//here littleParticle is also player's ball
+	//here player is main player's ball
+	//littleParticle is other player's ball
 	else if (player && littleParticle && 
+		((player->getTag() == PLAYER_SPRITE_TAG) || (player->getTag() == 300 + player_code) || (player->getTag() == CONTACT_TAG))
+		&& ((littleParticle->getTag() > 300) && (littleParticle->getTag() < 309) &&
+		(littleParticle->getTag() != 300 + player_code) && (littleParticle->getTag() != PLAYER_SPRITE_TAG)))
+	{
+		if ((littleParticle->getScale()) > (player->getScale()))
+		{
+			;
+		}
+
+		else
+		{
+			int playerCode = littleParticle->getTag() - 300;
+			string msg = to_string(playerCode);
+
+			bool if_ball_found = false;
+			for (int i = 0; i < aryMultiPlayerSprite[playerCode - 1].size(); i++)
+			{
+				if (littleParticle == aryMultiPlayerSprite[playerCode - 1][i])
+				{
+					aryMultiPlayerSprite[playerCode - 1][i] = nullptr;
+					msg += to_string(i);
+					if_ball_found = true;
+				}
+			}
+
+			if (if_ball_found)
+			{
+				this_client->sendMessage(DEAD_MESSAGE, msg + "||||||||||||||");
+				log("%s", msg.c_str());
+
+				player->runAction(ScaleTo::create(0.25,
+					pow((pow(littleParticle->getScale(), 1.4) + pow(player->getScale(), 1.4)), 1.0 / 1.4)));
+
+				this->removeChild(littleParticle);
+				littleParticle = nullptr;
+			}
+		}
+	}
+
+	/*else if (player && littleParticle && 
 		(((littleParticle->getTag() > 300) && (littleParticle->getTag() < 309)) || (littleParticle->getTag() == PLAYER_SPRITE_TAG))
 		&& (((player->getTag() > 300) && (player->getTag() < 309)) || (player->getTag() == PLAYER_SPRITE_TAG)))
 	/*else if (player && littleParticle && (littleParticle->getTag() == 300 + player_code || littleParticle->getTag() == PLAYER_SPRITE_TAG)
 		&& (((player->getTag() > 300) && (player->getTag() < 300 + player_code)) ||
 		((player->getTag() > 300 + player_code) && (player->getTag() < 309))))*/
-	{
+	/*{
 		if ((littleParticle->getScale()) > (player->getScale()))
 		{
 			string msg;
@@ -895,7 +943,8 @@ bool GameOl::contactBegin(PhysicsContact& contact)
 				}
 			}
 
-			this_client->sendMessage(DEAD_MESSAGE, msg + "|||||||||||||||");
+			if (player)
+				this_client->sendMessage(DEAD_MESSAGE, msg + "|||||||||||||||");
 
 			littleParticle->runAction(ScaleTo::create(0.25, 
 				(pow((pow(littleParticle->getScale(), 1.4) + pow(player->getScale(), 1.4)), 1.0 / 1.4))));
@@ -933,7 +982,8 @@ bool GameOl::contactBegin(PhysicsContact& contact)
 				}
 			}
 
-			this_client->sendMessage(DEAD_MESSAGE, msg + "||||||||||||||");
+			if (littleParticle)
+				this_client->sendMessage(DEAD_MESSAGE, msg + "||||||||||||||");
 
 			player->runAction(ScaleTo::create(0.25,
 				pow((pow(littleParticle->getScale(), 1.4) + pow(player->getScale(), 1.4)), 1.0 / 1.4)));
@@ -994,7 +1044,6 @@ void GameOl::loadingTime(float dt)
 }
 
 
-//bool dividing = false;
 
 int init_pos[8][2] = { {0, 0} };
 bool init_pos_got[8] = { 0 };
@@ -1151,7 +1200,7 @@ void GameOl::update(float dt)
 			int code = temp[1] - '0';
 			if (code != player_code)
 			{			
-				//dividing = true;
+				dividing = true;
 
 				int moveKind = temp[2] - '0';
 				bool if_moving = temp[4] - '0';
@@ -1177,16 +1226,17 @@ void GameOl::update(float dt)
 					y = -1;
 				}
 
-				vector<Sprite*>& vecSprite = aryMultiPlayerSprite[code - 1];
-				int playerSpriteNum = vecSprite.size();
+				int playerSpriteNum = aryMultiPlayerSprite[code - 1].size();
 
 				for (int i = 0; i < playerSpriteNum; i++)
 				{
-					if (vecSprite[i])
+					if (aryMultiPlayerSprite[code - 1][i])
 					{
-						if (vecSprite[i]->getScale() > 1.5)
+						if (aryMultiPlayerSprite[code - 1][i]->getScale() > 1.5)
 						{
-							vecSprite[i]->setScale(0.6 * vecSprite[i]->getScale());//0.707? 
+							//float targetScale = 0.6 * aryMultiPlayerSprite[code - 1][i]->getScale();
+							aryMultiPlayerSprite[code - 1][i]->setScale(0.6 * aryMultiPlayerSprite[code - 1][i]->getScale());//0.707? 
+							//aryMultiPlayerSprite[code - 1][i]->runAction(ScaleTo::create(0.1, targetScale));
 
 							auto player = Sprite::create(playerPicOl[code - 1]);
 							player->setTag(playerTag[code - 1]);
@@ -1197,7 +1247,9 @@ void GameOl::update(float dt)
 							playerBody->setCollisionBitmask(0x01);
 							player->setPhysicsBody(playerBody);
 
-							player->setScale(vecSprite[i]->getScale());
+							player->setScale(aryMultiPlayerSprite[code - 1][i]->getScale());
+							//player->setScale(targetScale / 2.0);
+							//player->runAction(ScaleTo::create(0.1, targetScale));
 							this->addChild(player);
 
 							//set the new sprite's position
@@ -1207,24 +1259,24 @@ void GameOl::update(float dt)
 							//if_is_moving_ol = false;
 							if (moveKind == 1)
 							{
-								player->setPosition(Vec2(vecSprite[i]->getPosition().x,
-									vecSprite[i]->getPosition().y
-									+ 100 * vecSprite[i]->getScale() * y));//100 maybe need to be changed
+								player->setPosition(Vec2(aryMultiPlayerSprite[code - 1][i]->getPosition().x,
+									aryMultiPlayerSprite[code - 1][i]->getPosition().y
+									+ 75 * aryMultiPlayerSprite[code - 1][i]->getScale() * y));//100 maybe need to be changed
 								if (if_moving)
 								{
-									//vecSprite[i]->stopAllActions();
+									//aryMultiPlayerSprite[code - 1][i]->stopAllActions();
 
 									//needs to be changed
 
-									auto move1 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+									auto move1 = MoveBy::create(1000 * aryMultiPlayerSprite[code - 1][i]->getScale(),
 										Vec2(0, SPEED * y));
-									/*auto moveShort1 = MoveBy::create(1 * vecSprite[i]->getScale(),
+									/*auto moveShort1 = MoveBy::create(1 * aryMultiPlayerSprite[code - 1][i]->getScale(),
 									Vec2(0, SPEED * y / 1000));
 									auto moveFast1 = EaseOut::create(moveShort1, 3);
 									auto seq1 = Sequence::create(move1, moveFast1, NULL);*/
 
-									vecSprite[i]->stopAllActions();
-									vecSprite[i]->runAction(move1);
+									aryMultiPlayerSprite[code - 1][i]->stopAllActions();
+									aryMultiPlayerSprite[code - 1][i]->runAction(move1);
 
 									player->runAction(move1->clone());
 									//log("move1 x%d y%d", x, y);
@@ -1232,19 +1284,19 @@ void GameOl::update(float dt)
 							}
 							else if (moveKind == 2)
 							{
-								player->setPosition(Vec2(vecSprite[i]->getPosition().x
-									+ 100 * vecSprite[i]->getScale() * x,
-									vecSprite[i]->getPosition().y
-									+ 100 * vecSprite[i]->getScale()* y));
+								player->setPosition(Vec2(aryMultiPlayerSprite[code - 1][i]->getPosition().x
+									+ 75 * aryMultiPlayerSprite[code - 1][i]->getScale() * x,
+									aryMultiPlayerSprite[code - 1][i]->getPosition().y
+									+ 75 * aryMultiPlayerSprite[code - 1][i]->getScale()* y));
 								if (if_moving)
 								{
-									//vecSprite[i]->stopAllActions();
+									//aryMultiPlayerSprite[code - 1][i]->stopAllActions();
 
-									auto move2 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+									auto move2 = MoveBy::create(1000 * aryMultiPlayerSprite[code - 1][i]->getScale(),
 										Vec2(0.707 * SPEED * x, 0.707 * SPEED * y));
 
-									vecSprite[i]->stopAllActions();
-									vecSprite[i]->runAction(move2);
+									aryMultiPlayerSprite[code - 1][i]->stopAllActions();
+									aryMultiPlayerSprite[code - 1][i]->runAction(move2);
 
 									player->runAction(move2->clone());
 									//log("move2 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
@@ -1252,38 +1304,38 @@ void GameOl::update(float dt)
 							}
 							else
 							{
-								player->setPosition(Vec2(vecSprite[i]->getPosition().x
-									+ 100 * vecSprite[i]->getScale() * x,
-									vecSprite[i]->getPosition().y));
+								player->setPosition(Vec2(aryMultiPlayerSprite[code - 1][i]->getPosition().x
+									+ 75 * aryMultiPlayerSprite[code - 1][i]->getScale() * x,
+									aryMultiPlayerSprite[code - 1][i]->getPosition().y));
 								if (if_moving)
 								{
-									//vecSprite[i]->stopAllActions();
+									//aryMultiPlayerSprite[code - 1][i]->stopAllActions();
 
-									auto move3 = MoveBy::create(1000 * vecSprite[i]->getScale(),
+									auto move3 = MoveBy::create(1000 * aryMultiPlayerSprite[code - 1][i]->getScale(),
 										Vec2(SPEED * x, 0));
 
-									vecSprite[i]->stopAllActions();
-									vecSprite[i]->runAction(move3);
+									aryMultiPlayerSprite[code - 1][i]->stopAllActions();
+									aryMultiPlayerSprite[code - 1][i]->runAction(move3);
 
 									player->runAction(move3->clone());
 									//log("move3 x%d y%d", previous_if_x_is_minus_ol, previous_if_y_is_minus_ol);
 								}
 							}
 
-							//log("original %f %f", vecSprite[i]->getPosition().x, vecSprite[i]->getPosition().y);
+							//log("original %f %f", aryMultiPlayerSprite[code - 1][i]->getPosition().x, aryMultiPlayerSprite[code - 1][i]->getPosition().y);
 							//log("x %d, y %d, move %d", x, y, moveKind);
 
-							vecSprite.push_back(player);
+							aryMultiPlayerSprite[code - 1].push_back(player);
 						}
 					}
 				}
 
-				//dividing = false;
+				dividing = false;
 			}
 		}
 
-		//if (if_loading_finished && !dividing)
-		if (if_loading_finished)
+		if (if_loading_finished && !dividing)
+		//if (if_loading_finished)
 		{
 			if (temp[0] == PLAYER_SCALE[0])
 			{
@@ -1291,10 +1343,23 @@ void GameOl::update(float dt)
 				if (code != player_code)
 				{
 					int ballCode = temp[2] - '0';
-					if (aryMultiPlayerSprite[code - 1][ballCode])
+
+					int count = 0;
+					for (int i = 0; i < aryMultiPlayerSprite[code - 1].size(); i++)
 					{
-						float ballScale = temp[3] - '0' + 0.1 * (temp[4] - '0') + 0.01 * (temp[5] - '0');
-						aryMultiPlayerSprite[code - 1][ballCode]->setScale(ballScale);
+						if (aryMultiPlayerSprite[code - 1][i])
+						{
+							count++;
+						}
+					}
+
+					if (ballCode <= count)
+					{
+						if (aryMultiPlayerSprite[code - 1][ballCode])
+						{
+							float ballScale = temp[3] - '0' + 0.1 * (temp[4] - '0') + 0.01 * (temp[5] - '0');
+							aryMultiPlayerSprite[code - 1][ballCode]->setScale(ballScale);
+						}
 					}
 				}
 			}
@@ -1305,26 +1370,39 @@ void GameOl::update(float dt)
 				if (code != player_code)
 				{
 					int ballCode = temp[2] - '0';
-					if (aryMultiPlayerSprite[code - 1][ballCode])
+
+					int count = 0;
+					for (int i = 0; i < aryMultiPlayerSprite[code - 1].size(); i++)
 					{
-						float posX = 1000 * (temp[3] - '0') + 100 * (temp[4] - '0') + 10 * (temp[5] - '0')
-							+ 1 * (temp[6] - '0') + 0.1 * (temp[7] - '0') + 0.01 * (temp[8] - '0');
-						float posY = 1000 * (temp[9] - '0') + 100 * (temp[10] - '0') + 10 * (temp[11] - '0')
-							+ 1 * (temp[12] - '0') + 0.1 * (temp[13] - '0') + 0.01 * (temp[14] - '0');
-						if (temp[15] == '2')
+						if (aryMultiPlayerSprite[code - 1][i])
 						{
-							posY = -posY;
+							count++;
 						}
-						else if (temp[15] == '3')
+					}
+
+					if (ballCode <= count)
+					{
+						if (aryMultiPlayerSprite[code - 1][ballCode])
 						{
-							posX = -posX;
+							float posX = 1000 * (temp[3] - '0') + 100 * (temp[4] - '0') + 10 * (temp[5] - '0')
+								+ 1 * (temp[6] - '0') + 0.1 * (temp[7] - '0') + 0.01 * (temp[8] - '0');
+							float posY = 1000 * (temp[9] - '0') + 100 * (temp[10] - '0') + 10 * (temp[11] - '0')
+								+ 1 * (temp[12] - '0') + 0.1 * (temp[13] - '0') + 0.01 * (temp[14] - '0');
+							if (temp[15] == '2')
+							{
+								posY = -posY;
+							}
+							else if (temp[15] == '3')
+							{
+								posX = -posX;
+							}
+							else if (temp[15] == '4')
+							{
+								posX = -posX;
+								posY = -posY;
+							}
+							aryMultiPlayerSprite[code - 1][ballCode]->setPosition(posX, posY);
 						}
-						else if (temp[15] == '4')
-						{
-							posX = -posX;
-							posY = -posY;
-						}
-						aryMultiPlayerSprite[code - 1][ballCode]->setPosition(posX, posY);
 					}
 				}
 			}
@@ -1332,6 +1410,53 @@ void GameOl::update(float dt)
 			if (temp[0] == DEAD_MESSAGE[0])
 			{
 				int code = temp[1] - '0';
+				int ballCode = temp[2] - '0';
+				if (code != player_code)
+				{
+					this->removeChild(aryMultiPlayerSprite[code - 1][ballCode]);
+					aryMultiPlayerSprite[code - 1][ballCode] = nullptr;
+				}
+				else
+				{
+					this->removeChild(aryMultiPlayerSprite[code - 1][ballCode]);
+					aryMultiPlayerSprite[code - 1][ballCode] = nullptr;
+					vecPlayerSprite[ballCode] = nullptr;
+
+					int ballAlive = 0;
+					int aliveBallCode = -1;
+
+					for (int i = 0; i < vecPlayerSprite.size(); i++)
+					{
+						if (vecPlayerSprite[i])
+						{
+							ballAlive++;
+							aliveBallCode = i;
+						}
+					}
+
+					if (!ballAlive || aliveBallCode == -1)
+					{
+						auto sc = End::createScene();
+						auto reScene = TransitionCrossFade::create(0.5f, sc);
+						Director::getInstance()->replaceScene(reScene);
+					}
+
+					else if (ballCode == previous_ball_listener)
+					{
+						//dismiss?
+						auto touchListener = EventListenerTouchOneByOne::create();
+
+						touchListener->setSwallowTouches(true);
+						touchListener->onTouchBegan = CC_CALLBACK_2(GameOl::onTouchBegan, this);
+						touchListener->onTouchMoved = CC_CALLBACK_2(GameOl::onTouchMoved, this);
+						touchListener->onTouchEnded = CC_CALLBACK_2(GameOl::onTouchEnded, this);
+
+						EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
+						eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, vecPlayerSprite[aliveBallCode]);//?
+						previous_ball_listener = aliveBallCode;
+					}
+				}
+				/*int code = temp[1] - '0';
 				int ballCode = temp[2] - '0';
 				if (code != player_code)
 				{
@@ -1358,7 +1483,7 @@ void GameOl::update(float dt)
 						auto reScene = TransitionCrossFade::create(0.5f, sc);
 						Director::getInstance()->replaceScene(reScene);
 					}
-				}
+				}*/
 			}
 		}
 	}
@@ -1369,8 +1494,8 @@ int times = 0;
 
 void GameOl::sendRefreshInfo(float dt)
 {
-	//if (if_loading_finished && !dividing)
-	if (if_loading_finished)
+	if (if_loading_finished && !dividing)
+	//if (if_loading_finished)
 	{
 		if (times == 3)
 		{
@@ -1422,7 +1547,10 @@ void GameOl::sendRefreshInfo(float dt)
 								+ "4|";
 						}
 					}*/
-					this_client->sendMessage(PLAYER_POSITION, msg);
+					if (!dividing)
+					{
+						this_client->sendMessage(PLAYER_POSITION, msg);
+					}
 				}
 			}
 
@@ -1440,7 +1568,10 @@ void GameOl::sendRefreshInfo(float dt)
 					string scaleStr = to_string(vecPlayerSprite[i]->getScale());
 					msg += to_string(scaleStr[0] - '0') + to_string(scaleStr[2] - '0')
 						+ to_string(scaleStr[3] - '0') + "||||" + "|||||||";
-					this_client->sendMessage(PLAYER_SCALE, msg);
+					if (!dividing)
+					{
+						this_client->sendMessage(PLAYER_SCALE, msg);
+					}
 				}
 			}
 
