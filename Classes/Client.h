@@ -83,6 +83,10 @@
 * @name 向游戏内其他玩家广播死亡消息，确保同步死亡
 * @{
 */
+//example j12|||||||||||||||
+//j for DEAD_MESSAGE
+//1 for player1
+//2 for player1's ball 2(start from 0)
 #define DEAD_MESSAGE    "j"
 /** @} */
 
