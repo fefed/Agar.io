@@ -22,7 +22,7 @@ USING_NS_CC;
 std::string playerPicOl[8] = { "game/player50x50.png" , "game/player50x50_blue.png" ,"game/player50x50_green.png" ,"game/player50x50_orange.png" ,
 "game/player50x50_purple.png","game/player50x50_purple2.png","game/player50x50_yellow.png","game/player50x50)colorful.png" };
 const int playerTag[8] = { 301, 302, 303, 304, 305, 306, 307, 308 };
-const int contactTag[8] = { 601, 602, 603, 604, 605, 606, 607, 608 };
+//const int contactTag[8] = { 601, 602, 603, 604, 605, 606, 607, 608 };
 
 static Client * this_client;
 int player_code;
@@ -72,7 +72,7 @@ bool GameOl::init()
 	auto player = Sprite::create(playerPicOl[player_code - 1]);
 	player->setTag(PLAYER_SPRITE_TAG);
 
-	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+	auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 2);
 	playerBody->setGravityEnable(false);
 	playerBody->setContactTestBitmask(0x03);//0011
 	playerBody->setCollisionBitmask(0x01);
@@ -505,7 +505,7 @@ void GameOl::mouseUp(Event* event)
 						//player->setColor(Color3B(0, 0, 0));
 						player->setTag(PLAYER_SPRITE_TAG);
 
-						auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+						auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 2);
 						playerBody->setGravityEnable(false);
 						playerBody->setContactTestBitmask(0x03);//0011
 						playerBody->setCollisionBitmask(0x01);
@@ -791,7 +791,7 @@ void GameOl::createLittleParticles(int particleAmount)
 		Sprite* littleParticle = Sprite::createWithTexture(batchNode->getTexture());
 		littleParticle->setTag(LITTLE_PARTICLE_TAG);
 
-		Size particleSize(20, 20);
+		Size particleSize(5, 5);//20?
 		auto particleBody = PhysicsBody::createBox(particleSize);
 		particleBody->setGravityEnable(false);
 		particleBody->setContactTestBitmask(0x07);//0111
@@ -898,8 +898,9 @@ bool GameOl::contactBegin(PhysicsContact& contact)
 				this_client->sendMessage(DEAD_MESSAGE, msg + "||||||||||||||");
 				log("%s", msg.c_str());
 
-				player->runAction(ScaleTo::create(0.25,
-					pow((pow(littleParticle->getScale(), 1.4) + pow(player->getScale(), 1.4)), 1.0 / 1.4)));
+				/*player->runAction(ScaleTo::create(0.25,
+					pow((pow(littleParticle->getScale(), 1.4) + pow(player->getScale(), 1.4)), 1.0 / 1.4)));*/
+				player->setScale(pow((pow(littleParticle->getScale(), 1.4) + pow(player->getScale(), 1.4)), 1.0 / 1.4));
 
 				this->removeChild(littleParticle);
 				littleParticle = nullptr;
@@ -1074,7 +1075,7 @@ void GameOl::update(float dt)
 					auto player = Sprite::create(playerPicOl[code - 1]);
 					player->setTag(playerTag[code - 1]);
 
-					auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+					auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 2);
 					playerBody->setGravityEnable(false);
 					playerBody->setContactTestBitmask(0x03);//0011
 					playerBody->setCollisionBitmask(0x01);
@@ -1241,7 +1242,7 @@ void GameOl::update(float dt)
 							auto player = Sprite::create(playerPicOl[code - 1]);
 							player->setTag(playerTag[code - 1]);
 
-							auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 4);
+							auto playerBody = PhysicsBody::createCircle(player->getContentSize().width / 2);
 							playerBody->setGravityEnable(false);
 							playerBody->setContactTestBitmask(0x03);//0011
 							playerBody->setCollisionBitmask(0x01);
@@ -1334,74 +1335,77 @@ void GameOl::update(float dt)
 			}
 		}
 
-		if (if_loading_finished && !dividing)
+		if (if_loading_finished)
 		//if (if_loading_finished)
 		{
-			if (temp[0] == PLAYER_SCALE[0])
+			if (!dividing)
 			{
-				int code = temp[1] - '0';
-				if (code != player_code)
+				if (temp[0] == PLAYER_SCALE[0])
 				{
-					int ballCode = temp[2] - '0';
-
-					int count = 0;
-					for (int i = 0; i < aryMultiPlayerSprite[code - 1].size(); i++)
+					int code = temp[1] - '0';
+					if (code != player_code)
 					{
-						if (aryMultiPlayerSprite[code - 1][i])
+						int ballCode = temp[2] - '0';
+
+						int count = 0;
+						for (int i = 0; i < aryMultiPlayerSprite[code - 1].size(); i++)
 						{
-							count++;
+							if (aryMultiPlayerSprite[code - 1][i])
+							{
+								count++;
+							}
 						}
-					}
 
-					if (ballCode <= count)
-					{
-						if (aryMultiPlayerSprite[code - 1][ballCode])
+						if (ballCode <= count)
 						{
-							float ballScale = temp[3] - '0' + 0.1 * (temp[4] - '0') + 0.01 * (temp[5] - '0');
-							aryMultiPlayerSprite[code - 1][ballCode]->setScale(ballScale);
+							if (aryMultiPlayerSprite[code - 1][ballCode])
+							{
+								float ballScale = temp[3] - '0' + 0.1 * (temp[4] - '0') + 0.01 * (temp[5] - '0');
+								aryMultiPlayerSprite[code - 1][ballCode]->setScale(ballScale);
+							}
 						}
 					}
 				}
-			}
 
-			if (temp[0] == PLAYER_POSITION[0])
-			{
-				int code = temp[1] - '0';
-				if (code != player_code)
+				if (temp[0] == PLAYER_POSITION[0])
 				{
-					int ballCode = temp[2] - '0';
-
-					int count = 0;
-					for (int i = 0; i < aryMultiPlayerSprite[code - 1].size(); i++)
+					int code = temp[1] - '0';
+					if (code != player_code)
 					{
-						if (aryMultiPlayerSprite[code - 1][i])
+						int ballCode = temp[2] - '0';
+
+						int count = 0;
+						for (int i = 0; i < aryMultiPlayerSprite[code - 1].size(); i++)
 						{
-							count++;
+							if (aryMultiPlayerSprite[code - 1][i])
+							{
+								count++;
+							}
 						}
-					}
 
-					if (ballCode <= count)
-					{
-						if (aryMultiPlayerSprite[code - 1][ballCode])
+						if (ballCode <= count)
 						{
-							float posX = 1000 * (temp[3] - '0') + 100 * (temp[4] - '0') + 10 * (temp[5] - '0')
-								+ 1 * (temp[6] - '0') + 0.1 * (temp[7] - '0') + 0.01 * (temp[8] - '0');
-							float posY = 1000 * (temp[9] - '0') + 100 * (temp[10] - '0') + 10 * (temp[11] - '0')
-								+ 1 * (temp[12] - '0') + 0.1 * (temp[13] - '0') + 0.01 * (temp[14] - '0');
-							if (temp[15] == '2')
+							if (aryMultiPlayerSprite[code - 1][ballCode])
 							{
-								posY = -posY;
+								float posX = 1000 * (temp[3] - '0') + 100 * (temp[4] - '0') + 10 * (temp[5] - '0')
+									+ 1 * (temp[6] - '0') + 0.1 * (temp[7] - '0') + 0.01 * (temp[8] - '0');
+								float posY = 1000 * (temp[9] - '0') + 100 * (temp[10] - '0') + 10 * (temp[11] - '0')
+									+ 1 * (temp[12] - '0') + 0.1 * (temp[13] - '0') + 0.01 * (temp[14] - '0');
+								if (temp[15] == '2')
+								{
+									posY = -posY;
+								}
+								else if (temp[15] == '3')
+								{
+									posX = -posX;
+								}
+								else if (temp[15] == '4')
+								{
+									posX = -posX;
+									posY = -posY;
+								}
+								aryMultiPlayerSprite[code - 1][ballCode]->setPosition(posX, posY);
 							}
-							else if (temp[15] == '3')
-							{
-								posX = -posX;
-							}
-							else if (temp[15] == '4')
-							{
-								posX = -posX;
-								posY = -posY;
-							}
-							aryMultiPlayerSprite[code - 1][ballCode]->setPosition(posX, posY);
 						}
 					}
 				}
@@ -1409,52 +1413,60 @@ void GameOl::update(float dt)
 
 			if (temp[0] == DEAD_MESSAGE[0])
 			{
-				int code = temp[1] - '0';
-				int ballCode = temp[2] - '0';
-				if (code != player_code)
+				if (!dividing)
 				{
-					this->removeChild(aryMultiPlayerSprite[code - 1][ballCode]);
-					aryMultiPlayerSprite[code - 1][ballCode] = nullptr;
-				}
-				else
-				{
-					this->removeChild(aryMultiPlayerSprite[code - 1][ballCode]);
-					aryMultiPlayerSprite[code - 1][ballCode] = nullptr;
-					vecPlayerSprite[ballCode] = nullptr;
-
-					int ballAlive = 0;
-					int aliveBallCode = -1;
-
-					for (int i = 0; i < vecPlayerSprite.size(); i++)
+					int code = temp[1] - '0';
+					int ballCode = temp[2] - '0';
+					if (code != player_code)
 					{
-						if (vecPlayerSprite[i])
+						this->removeChild(aryMultiPlayerSprite[code - 1][ballCode]);
+						aryMultiPlayerSprite[code - 1][ballCode] = nullptr;
+					}
+					else
+					{
+						this->removeChild(aryMultiPlayerSprite[code - 1][ballCode]);
+						aryMultiPlayerSprite[code - 1][ballCode] = nullptr;
+						vecPlayerSprite[ballCode] = nullptr;
+
+						int ballAlive = 0;
+						int aliveBallCode = -1;
+
+						for (int i = 0; i < vecPlayerSprite.size(); i++)
 						{
-							ballAlive++;
-							aliveBallCode = i;
+							if (vecPlayerSprite[i])
+							{
+								ballAlive++;
+								aliveBallCode = i;
+							}
+						}
+
+						if (!ballAlive || aliveBallCode == -1)
+						{
+							auto sc = End::createScene();
+							auto reScene = TransitionCrossFade::create(0.5f, sc);
+							Director::getInstance()->replaceScene(reScene);
+						}
+
+						else if (ballCode == previous_ball_listener)
+						{
+							//dismiss?
+							auto touchListener = EventListenerTouchOneByOne::create();
+
+							touchListener->setSwallowTouches(true);
+							touchListener->onTouchBegan = CC_CALLBACK_2(GameOl::onTouchBegan, this);
+							touchListener->onTouchMoved = CC_CALLBACK_2(GameOl::onTouchMoved, this);
+							touchListener->onTouchEnded = CC_CALLBACK_2(GameOl::onTouchEnded, this);
+
+							EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
+							eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, vecPlayerSprite[aliveBallCode]);//?
+							previous_ball_listener = aliveBallCode;
 						}
 					}
+				}
 
-					if (!ballAlive || aliveBallCode == -1)
-					{
-						auto sc = End::createScene();
-						auto reScene = TransitionCrossFade::create(0.5f, sc);
-						Director::getInstance()->replaceScene(reScene);
-					}
-
-					else if (ballCode == previous_ball_listener)
-					{
-						//dismiss?
-						auto touchListener = EventListenerTouchOneByOne::create();
-
-						touchListener->setSwallowTouches(true);
-						touchListener->onTouchBegan = CC_CALLBACK_2(GameOl::onTouchBegan, this);
-						touchListener->onTouchMoved = CC_CALLBACK_2(GameOl::onTouchMoved, this);
-						touchListener->onTouchEnded = CC_CALLBACK_2(GameOl::onTouchEnded, this);
-
-						EventDispatcher* eventDispatcher = Director::getInstance()->getEventDispatcher();
-						eventDispatcher->addEventListenerWithSceneGraphPriority(touchListener, vecPlayerSprite[aliveBallCode]);//?
-						previous_ball_listener = aliveBallCode;
-					}
+				else
+				{
+					log("dead msg not handled");
 				}
 				/*int code = temp[1] - '0';
 				int ballCode = temp[2] - '0';
@@ -1484,6 +1496,7 @@ void GameOl::update(float dt)
 						Director::getInstance()->replaceScene(reScene);
 					}
 				}*/
+
 			}
 		}
 	}

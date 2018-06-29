@@ -368,6 +368,8 @@ std::string Client::executeOrder(void)
 	return temp;
 }
 
+//some code is from Li Kun: https://github.com/Moonlor/SQLS
+//
 /*MIT License
 
 Copyright(c)[2017][Li Kun]

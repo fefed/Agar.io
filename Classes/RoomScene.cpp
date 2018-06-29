@@ -5,11 +5,17 @@
 
 #define START_FORBIDDEN_TAG 101
 #define START_BUTTON_TAG 102
+#define SEND_BUTTON_TAG 103
+#define CHAT_MSG_TAG 104
 
 USING_NS_CC;
 
 std::string playerPic[8] = { "room/p1.png" , "room/p2.png" ,"room/p3.png" ,"room/p4.png" ,
 "room/p5.png","room/p6.png","room/p7.png","room/p8.png" };
+std::string sendPic[8] = { "game/player50x50.png" , "game/player50x50_blue.png" ,"game/player50x50_green.png" ,"game/player50x50_orange.png" ,
+"game/player50x50_purple.png","game/player50x50_purple2.png","game/player50x50_yellow.png","game/player50x50)colorful.png" };
+Color3B msgColor[8] = { Color3B(241,158,194),Color3B(126,206,244),Color3B(172,213,152),Color3B(248,181,81),
+	Color3B(228,0,127), Color3B(170,137,189), Color3B(255,247,153), Color3B(255,255,255) };
 
 Scene* Room::createScene()
 {
@@ -361,6 +367,37 @@ void Room::update(float dt)
 					mn->setPosition(Vec2::ZERO);
 					mn->setTag(START_BUTTON_TAG);
 					this->addChild(mn, 0);
+
+
+					//chat
+					_chatWindow = cocos2d::ui::TextField::create("INPUT MESSAGE HERE", "Arial", 20);
+					_chatWindow->setMaxLengthEnabled(true);
+					_chatWindow->setMaxLength(10);
+					_chatWindow->setPosition(Vec2(250, 100));
+					_chatWindow->addEventListener(CC_CALLBACK_2(Room::textFieldEvent, this));
+					this->addChild(_chatWindow, 2);
+
+					auto inputBar = Sprite::create("room/inputBar_2.png");
+					inputBar->setPosition(Vec2(250, 100));
+					this->addChild(inputBar, 1);
+
+					auto msgWindow = Sprite::create("room/chatWindow_2.png");
+					msgWindow->setPosition(Vec2(250, 245));
+					this->addChild(msgWindow, 1);
+
+					auto sendSpriteNormal = Sprite::create(sendPic[0]);
+					auto sendSpriteChosen = Sprite::create(sendPic[0]);
+					sendSpriteNormal->setScale(0.6);
+					sendSpriteChosen->setScale(0.6);
+
+					MenuItemSprite* sendMenuItem = MenuItemSprite::create(sendSpriteNormal, sendSpriteChosen,
+						CC_CALLBACK_1(Room::menuItemSendCallback, this));
+					sendMenuItem->setPosition((Vec2(460, 110)));
+
+					Menu* mn2 = Menu::create(sendMenuItem, NULL);
+					mn2->setPosition(Vec2::ZERO);
+					mn2->setTag(SEND_BUTTON_TAG);
+					this->addChild(mn2, 3);
 				}
 
 				player_count++;
@@ -417,6 +454,11 @@ void Room::update(float dt)
 				//Director::getInstance()->replaceScene(reScene);
 				Director::getInstance()->replaceScene(sc);
 			}
+
+			if (temp[0] == CHAT_MESSAGE[0])
+			{
+				handleMsg(temp);
+			}
 		}
 	}
 
@@ -443,6 +485,35 @@ void Room::update(float dt)
 					playerSign->setTag(i + 1 + 200);
 					this->addChild(playerSign);
 				}
+
+				_chatWindow = cocos2d::ui::TextField::create("INPUT MESSAGE HERE", "Arial", 20);
+				_chatWindow->setMaxLengthEnabled(true);
+				_chatWindow->setMaxLength(10);
+				_chatWindow->setPosition(Vec2(250, 100));
+				_chatWindow->addEventListener(CC_CALLBACK_2(Room::textFieldEvent, this));
+				this->addChild(_chatWindow, 2);
+
+				auto inputBar = Sprite::create("room/inputBar_2.png");
+				inputBar->setPosition(Vec2(250, 100));
+				this->addChild(inputBar, 1);
+
+				auto msgWindow = Sprite::create("room/chatWindow_2.png");
+				msgWindow->setPosition(Vec2(250, 245));
+				this->addChild(msgWindow, 1);
+
+				auto sendSpriteNormal = Sprite::create(sendPic[player_num - 1]);
+				auto sendSpriteChosen = Sprite::create(sendPic[player_num - 1]);
+				sendSpriteNormal->setScale(0.6);
+				sendSpriteChosen->setScale(0.6);
+
+				MenuItemSprite* sendMenuItem = MenuItemSprite::create(sendSpriteNormal, sendSpriteChosen,
+					CC_CALLBACK_1(Room::menuItemSendCallback, this));
+				sendMenuItem->setPosition((Vec2(460, 110)));
+
+				Menu* mn2 = Menu::create(sendMenuItem, NULL);
+				mn2->setPosition(Vec2::ZERO);
+				mn2->setTag(SEND_BUTTON_TAG);
+				this->addChild(mn2, 3);
 			}
 
 			if (temp[0] == EXIT_ROOM[0])
@@ -487,7 +558,103 @@ void Room::update(float dt)
 				//Director::getInstance()->replaceScene(reScene);
 				Director::getInstance()->replaceScene(sc);
 			}
+
+			if (temp[0] == CHAT_MESSAGE[0])
+			{
+				handleMsg(temp);
+			}
 		}
 	}
 }
 
+void Room::textFieldEvent(Ref *pSender, cocos2d::ui::TextField::EventType type)
+{
+	switch (type)
+	{
+	case cocos2d::ui::TextField::EventType::ATTACH_WITH_IME:
+	{
+		cocos2d::ui::TextField* textField = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+		Size screenSize = CCDirector::getInstance()->getWinSize();
+
+		//_pleaseStartButton->setVisible(true);
+	}
+	break;
+
+	case cocos2d::ui::TextField::EventType::DETACH_WITH_IME:
+	{
+		cocos2d::ui::TextField* textField = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+
+		// _playerName = textField->getString();
+		// _pleaseStartButton->setVisible(true);
+	}
+	break;
+
+	case cocos2d::ui::TextField::EventType::INSERT_TEXT:
+	{
+		cocos2d::ui::TextField* textField = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+		// _pleaseStartButton->setVisible(false);
+		//_playerName = textField->getString();
+		//_nameStartButton->setVisible(true);
+
+	}
+	break;
+
+	case cocos2d::ui::TextField::EventType::DELETE_BACKWARD:
+	{
+		cocos2d::ui::TextField* textField = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+
+		// _playerName = textField->getString();
+	}
+	break;
+
+	default:
+		break;
+	}
+}
+
+void Room::menuItemSendCallback(cocos2d::Ref * pSender)
+{
+	std::string message = _chatWindow->getString();
+	if (message != "")
+	{
+		for (int i = 0; i < 15 - message.size(); i++)
+			message += "|";
+		client->sendMessage(CHAT_MESSAGE, to_string(player_num) + message);
+		_chatWindow->setString("");
+	}
+}
+
+void Room::handleMsg(std::string temp)
+{
+	if (msgCnt > 4)
+	{
+		for (int i = 0; i < 5; i++)
+		{
+			this->removeChildByTag(CHAT_MSG_TAG + i);
+		}
+		msgCnt = 0;
+	}
+	else
+	{
+		for (int i = 0; i < msgCnt; i++)
+		{
+			auto oldMsg = this->getChildByTag(CHAT_MSG_TAG + i);
+			oldMsg->setPosition(Vec2(110, oldMsg->getPosition().y + 45));
+		}
+	}
+
+	int player_code = temp[1] - '0';
+	string msg = "P" + to_string(player_code) + ": ";
+	for (int i = 2; temp[i] != '|'; i++)
+	{
+		msg += temp[i];
+	}
+
+	auto chatMsg = Label::createWithSystemFont(msg, "Arial", 20);
+	chatMsg->setColor(msgColor[player_code - 1]);
+	chatMsg->setPosition(Vec2(110, 150));
+	chatMsg->setAnchorPoint(Vec2(0, 0.5));
+	chatMsg->setTag(CHAT_MSG_TAG + msgCnt);
+	this->addChild(chatMsg, 3);
+	msgCnt++;
+}
